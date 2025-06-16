@@ -22,18 +22,25 @@ def is_similar(line1, line2, dist_thresh=3, angle_thresh=5):
 img = cv2.imread("../data/raw/Pic1.jpg")
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+#先做高斯模糊 + 提升对比度
+blur = cv2.GaussianBlur(gray, (3, 3), 0)
+equalized = cv2.equalizeHist(blur)
+
 #显示原图
 cv2.imshow("Original Pic", img) 
 
 # 2. 边缘检测
-edges = cv2.Canny(gray, 30, 170, apertureSize=3)
+#edges = cv2.Canny(gray, 40, 160, apertureSize=3)
+edges = cv2.Canny(equalized, 40, 100)   # 提升了对比度后的Canny
+
+cv2.imshow("Equalizeed", equalized)
 
 # 3. 使用 HoughLinesP 检测“线段”（不是无限延长线）
 lines = cv2.HoughLinesP(edges, 
                         rho=1, 
                         theta=np.pi/180, 
-                        threshold=20, 
-                        minLineLength=50, 
+                        threshold=15, 
+                        minLineLength=20, 
                         maxLineGap=5)
 
 
