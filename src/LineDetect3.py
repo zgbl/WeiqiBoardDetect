@@ -28,18 +28,22 @@ equalized = cv2.equalizeHist(blur)
 
 #显示原图
 cv2.imshow("Original Pic", img) 
+cv2.moveWindow("Original Pic", 0, 0)
 
 # 2. 边缘检测
-#edges = cv2.Canny(gray, 40, 160, apertureSize=3)
-edges = cv2.Canny(equalized, 40, 100)   # 提升了对比度后的Canny
+edges = cv2.Canny(gray, 40, 160, apertureSize=3)
+#edges = cv2.Canny(equalized, 50, 150)   # 提升了对比度后的Canny
 
+print("Equalized shape:", equalized.shape, "dtype:", equalized.dtype)
+print("Equalized min/max:", np.min(equalized), np.max(equalized))
 cv2.imshow("Equalizeed", equalized)
+cv2.moveWindow("Equalizeed", 600, 0)
 
 # 3. 使用 HoughLinesP 检测“线段”（不是无限延长线）
 lines = cv2.HoughLinesP(edges, 
                         rho=1, 
                         theta=np.pi/180, 
-                        threshold=15, 
+                        threshold=0, 
                         minLineLength=20, 
                         maxLineGap=5)
 
@@ -60,11 +64,12 @@ if lines is not None:
     #cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 1, cv2.LINE_AA)
     for x1, y1, x2, y2 in lines[:, 0]:
        
-        print("Line is:", x1, y1, "To:", x2, y2)
+        #print("Line is:", x1, y1, "To:", x2, y2)
         cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 1 )  # 线宽1，颜色红
         lineCount += 1
-    print("Total line is:", lineCount)
+    #print("Total line is:", lineCount)
 # 5. 显示
 cv2.imshow("Detected Line", img)
+cv2.moveWindow("Detected Line", 0, 300)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
