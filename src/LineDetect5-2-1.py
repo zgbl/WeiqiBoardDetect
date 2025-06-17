@@ -313,7 +313,7 @@ cv2.moveWindow("Original Pic", 0, 0)
 
 # 2. 边缘检测
 #edges = cv2.Canny(gray, 40, 160, apertureSize=3)
-edges = cv2.Canny(equalized, 50, 150)   # 提升了对比度后的Canny
+edges = cv2.Canny(equalized, 40, 150)   # 提升了对比度后的Canny
 
 #设定检测 N 路棋盘
 N = 19

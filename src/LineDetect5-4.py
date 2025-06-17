@@ -210,7 +210,7 @@ def calculate_average_spacing(positions):
     
     return np.mean(spacings)
 
-def regularize_board_lines_improved(h_lines, v_lines, n_lines=9):
+def regularize_board_lines(h_lines, v_lines, n_lines=9):
     """
     改进的规整化函数，处理边缘偏移问题
     """
@@ -446,7 +446,7 @@ if lines is not None:
     print_line_analysis(merged_h, merged_v)
     
     # 5. 改进的规整化处理
-    regularized_h, regularized_v = regularize_board_lines_improved(merged_h, merged_v, N)
+    regularized_h, regularized_v = regularize_board_lines(merged_h, merged_v, N)
     
     print(f"\n规整化后:")
     print(f"横线数量: {len(regularized_h)}")

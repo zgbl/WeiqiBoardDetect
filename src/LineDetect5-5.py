@@ -65,85 +65,84 @@ def classify_lines_by_angle(lines, angle_thresh=10):
             verticals.append((x1, y1, x2, y2))
     return horizontals, verticals
 
-def filter_board_lines(line_group, img_shape, axis='h', margin_ratio=0.05):
+def filter_board_lines_lenient(line_group, img_shape, axis='h', margin_ratio=0.03):
     """
-    过滤掉边缘误判的线条和质量不高的线条
+    更宽松的线条过滤，只过滤明显的噪声线条
     """
     if not line_group:
         return []
     
     height, width = img_shape[:2]
-    margin_h = int(height * margin_ratio)
+    margin_h = int(height * margin_ratio)  # 减少到3%
     margin_w = int(width * margin_ratio)
     
     filtered_lines = []
     
     for x1, y1, x2, y2 in line_group:
-        # 过滤掉太靠近边缘的线条
+        # 只过滤掉非常靠近边缘的短线条
         if axis == 'h':
-            # 横线：检查y坐标是否太靠近上下边缘
             y_avg = (y1 + y2) / 2
-            if margin_h <= y_avg <= height - margin_h:
-                # 检查线条长度是否合理（至少跨越图像的一定比例）
-                line_length = abs(x2 - x1)
-                if line_length >= width * 0.3:  # 至少30%的图像宽度
-                    filtered_lines.append((x1, y1, x2, y2))
+            line_length = abs(x2 - x1)
+            # 对于靠近边缘的线条，要求更长的长度
+            min_length_ratio = 0.15 if (y_avg < margin_h or y_avg > height - margin_h) else 0.1
+            if line_length >= width * min_length_ratio:
+                filtered_lines.append((x1, y1, x2, y2))
         else:
-            # 竖线：检查x坐标是否太靠近左右边缘
             x_avg = (x1 + x2) / 2
-            if margin_w <= x_avg <= width - margin_w:
-                # 检查线条长度是否合理
-                line_length = abs(y2 - y1)
-                if line_length >= height * 0.3:  # 至少30%的图像高度
-                    filtered_lines.append((x1, y1, x2, y2))
+            line_length = abs(y2 - y1)
+            # 对于靠近边缘的线条，要求更长的长度
+            min_length_ratio = 0.15 if (x_avg < margin_w or x_avg > width - margin_w) else 0.1
+            if line_length >= height * min_length_ratio:
+                filtered_lines.append((x1, y1, x2, y2))
     
     return filtered_lines
 
-def cluster_lines_adaptive(line_group, expected_count, axis='h', tolerance=0.1):
+def cluster_lines_conservative(line_group, expected_count, axis='h'):
     """
-    自适应聚类，动态调整聚类数量
+    保守的聚类方法，尽量保留所有检测到的线条
     """
     if not line_group:
         return []
     
-    # 取横向：按 y 聚类，取竖向：按 x 聚类
+    # 取坐标用于聚类
     coords = []
     for x1, y1, x2, y2 in line_group:
         coord = (y1 + y2) / 2 if axis == 'h' else (x1 + x2) / 2
         coords.append([coord])
 
     if len(coords) < 2:
-        return []
-    
-    # 首先尝试期望的聚类数量
-    n_clusters = min(expected_count, len(coords))
-    
-    # 如果线条数量明显超过期望值，可能有误判，先尝试过滤
-    if len(coords) > expected_count * 1.5:
-        # 根据线条质量（长度）进行过滤
-        line_qualities = []
-        for x1, y1, x2, y2 in line_group:
-            if axis == 'h':
-                length = abs(x2 - x1)
-            else:
-                length = abs(y2 - y1)
-            line_qualities.append((length, (x1, y1, x2, y2)))
-        
-        # 保留质量较高的线条
-        line_qualities.sort(reverse=True)
-        keep_count = min(expected_count * 2, len(line_qualities))  # 最多保留2倍的期望数量
-        line_group = [line for _, line in line_qualities[:keep_count]]
-        
-        # 重新计算坐标
-        coords = []
-        for x1, y1, x2, y2 in line_group:
-            coord = (y1 + y2) / 2 if axis == 'h' else (x1 + x2) / 2
-            coords.append([coord])
-        
-        n_clusters = min(expected_count, len(coords))
+        return line_group  # 如果线条太少，直接返回
 
+    # 只在线条数量远超预期时才进行异常值过滤
+    coord_values = [c[0] for c in coords]
+    if len(coord_values) > expected_count * 2:  # 提高阈值到2倍
+        # 使用更宽松的异常值检测
+        q1 = np.percentile(coord_values, 15)  # 从25%改为15%
+        q3 = np.percentile(coord_values, 85)  # 从75%改为85%
+        iqr = q3 - q1
+        
+        # 使用更宽松的异常值阈值
+        lower_bound = q1 - 3.0 * iqr  # 从2.0改为3.0
+        upper_bound = q3 + 3.0 * iqr
+        
+        # 过滤异常值
+        filtered_coords = []
+        filtered_lines = []
+        for i, coord in enumerate(coord_values):
+            if lower_bound <= coord <= upper_bound:
+                filtered_coords.append([coord])
+                filtered_lines.append(line_group[i])
+        
+        if len(filtered_coords) >= 2:
+            coords = filtered_coords
+            line_group = filtered_lines
+            print(f"异常值过滤: {axis}轴从{len(coord_values)}条线减少到{len(coords)}条")
+
+    # 动态确定聚类数量
+    n_clusters = min(len(coords), max(expected_count, len(coords) // 2))
+    
     if n_clusters < 2:
-        return []
+        return line_group
 
     kmeans = KMeans(n_clusters=n_clusters, n_init=10, random_state=42)
     labels = kmeans.fit_predict(coords)
@@ -210,70 +209,131 @@ def calculate_average_spacing(positions):
     
     return np.mean(spacings)
 
-def regularize_board_lines(h_lines, v_lines, n_lines=9):
+def regularize_board_lines_improved(h_lines, v_lines, n_lines=9):
     """
-    根据围棋盘的规律性，规整化线条位置和长度
-    横线应该从最左边的竖线延伸到最右边的竖线
-    竖线应该从最上边的横线延伸到最下边的横线
+    改进的规整化函数，更好地处理边缘线条
     """
-    # 1. 首先确定横线和竖线的理想位置
+    print(f"输入: 横线 {len(h_lines)} 条, 竖线 {len(v_lines)} 条")
+    
     regularized_h_lines = []
     regularized_v_lines = []
     
-    # 处理横线位置
-    h_positions = []
+    # 处理横线
     if h_lines:
+        h_positions = []
         for x1, y1, x2, y2 in h_lines:
             h_positions.append((y1 + y2) / 2)
         h_positions = sorted(h_positions)
+        print(f"原始横线位置: {[int(p) for p in h_positions]}")
+        
+        # 智能选择线条子集
+        selected_h_positions = select_best_lines(h_positions, n_lines)
+        print(f"选择的横线位置: {[int(p) for p in selected_h_positions]}")
+        
+        if len(selected_h_positions) >= 2:
+            # 基于选定的线条计算等间距
+            total_h_span = selected_h_positions[-1] - selected_h_positions[0]
+            ideal_h_spacing = total_h_span / (n_lines - 1) if n_lines > 1 else 0
+            start_h_pos = selected_h_positions[0]
+            
+            ideal_h_positions = []
+            for i in range(n_lines):
+                ideal_h_positions.append(int(start_h_pos + i * ideal_h_spacing))
+            
+            print(f"理想横线位置: {ideal_h_positions}")
+            
+            # 确定横线的x坐标范围
+            if v_lines:
+                v_positions = [(x1 + x2) / 2 for x1, y1, x2, y2 in v_lines]
+                x_min = int(min(v_positions))
+                x_max = int(max(v_positions))
+            else:
+                all_x = []
+                for x1, y1, x2, y2 in h_lines:
+                    all_x.extend([x1, x2])
+                x_min = min(all_x)
+                x_max = max(all_x)
+            
+            # 生成规整的横线
+            for y_pos in ideal_h_positions:
+                regularized_h_lines.append((x_min, y_pos, x_max, y_pos))
     
-    # 处理竖线位置
-    v_positions = []
+    # 处理竖线（类似逻辑）
     if v_lines:
+        v_positions = []
         for x1, y1, x2, y2 in v_lines:
             v_positions.append((x1 + x2) / 2)
         v_positions = sorted(v_positions)
-    
-    # 2. 计算理想的等间距位置
-    ideal_h_positions = []
-    ideal_v_positions = []
-    
-    if len(h_positions) >= 2:
-        # 计算横线的理想位置
-        total_h_span = h_positions[-1] - h_positions[0]
-        ideal_h_spacing = total_h_span / (n_lines - 1) if n_lines > 1 else 0
-        start_h_pos = h_positions[0]
+        print(f"原始竖线位置: {[int(p) for p in v_positions]}")
         
-        for i in range(n_lines):
-            ideal_h_positions.append(int(start_h_pos + i * ideal_h_spacing))
-    
-    if len(v_positions) >= 2:
-        # 计算竖线的理想位置
-        total_v_span = v_positions[-1] - v_positions[0]
-        ideal_v_spacing = total_v_span / (n_lines - 1) if n_lines > 1 else 0
-        start_v_pos = v_positions[0]
+        # 智能选择线条子集
+        selected_v_positions = select_best_lines(v_positions, n_lines)
+        print(f"选择的竖线位置: {[int(p) for p in selected_v_positions]}")
         
-        for i in range(n_lines):
-            ideal_v_positions.append(int(start_v_pos + i * ideal_v_spacing))
+        if len(selected_v_positions) >= 2:
+            # 基于选定的线条计算等间距
+            total_v_span = selected_v_positions[-1] - selected_v_positions[0]
+            ideal_v_spacing = total_v_span / (n_lines - 1) if n_lines > 1 else 0
+            start_v_pos = selected_v_positions[0]
+            
+            ideal_v_positions = []
+            for i in range(n_lines):
+                ideal_v_positions.append(int(start_v_pos + i * ideal_v_spacing))
+            
+            print(f"理想竖线位置: {ideal_v_positions}")
+            
+            # 确定竖线的y坐标范围
+            if h_lines:
+                h_positions_for_v = [(y1 + y2) / 2 for x1, y1, x2, y2 in h_lines]
+                y_min = int(min(h_positions_for_v))
+                y_max = int(max(h_positions_for_v))
+            else:
+                all_y = []
+                for x1, y1, x2, y2 in v_lines:
+                    all_y.extend([y1, y2])
+                y_min = min(all_y)
+                y_max = max(all_y)
+            
+            # 生成规整的竖线
+            for x_pos in ideal_v_positions:
+                regularized_v_lines.append((x_pos, y_min, x_pos, y_max))
     
-    # 3. 生成规整的线条
-    # 横线：从最左边的竖线延伸到最右边的竖线
-    if ideal_h_positions and ideal_v_positions:
-        x_min = min(ideal_v_positions)  # 最左边的竖线位置
-        x_max = max(ideal_v_positions)  # 最右边的竖线位置
-        
-        for y_pos in ideal_h_positions:
-            regularized_h_lines.append((x_min, y_pos, x_max, y_pos))
-    
-    # 竖线：从最上边的横线延伸到最下边的横线
-    if ideal_v_positions and ideal_h_positions:
-        y_min = min(ideal_h_positions)  # 最上边的横线位置
-        y_max = max(ideal_h_positions)  # 最下边的横线位置
-        
-        for x_pos in ideal_v_positions:
-            regularized_v_lines.append((x_pos, y_min, x_pos, y_max))
-    
+    print(f"输出: 横线 {len(regularized_h_lines)} 条, 竖线 {len(regularized_v_lines)} 条")
     return regularized_h_lines, regularized_v_lines
+
+def select_best_lines(positions, target_count):
+    """
+    智能选择最佳的线条子集
+    """
+    if len(positions) <= target_count:
+        return positions
+    
+    # 如果线条数量过多，选择分布最均匀的子集
+    positions = sorted(positions)
+    
+    # 方法1：如果有明显的两个边界，选择包含边界的均匀分布
+    total_span = positions[-1] - positions[0]
+    
+    # 计算所有可能的子集，选择间距最均匀的
+    best_subset = positions[:target_count]
+    best_variance = float('inf')
+    
+    # 使用滑动窗口寻找最佳子集
+    for start_idx in range(len(positions) - target_count + 1):
+        subset = positions[start_idx:start_idx + target_count]
+        
+        # 计算间距的方差
+        spacings = []
+        for i in range(1, len(subset)):
+            spacings.append(subset[i] - subset[i-1])
+        
+        if spacings:
+            variance = np.var(spacings)
+            if variance < best_variance:
+                best_variance = variance
+                best_subset = subset
+    
+    return best_subset
 
 def print_line_analysis(h_lines, v_lines):
     """
@@ -300,7 +360,7 @@ def print_line_analysis(h_lines, v_lines):
 
 # 1. 读图 & 转灰度
 #img = cv2.imread("../data/raw/BasicStraightLine2.jpg")
-img = cv2.imread("../data/raw/bd317d54.webp")
+img = cv2.imread("../data/raw/Pic1.jpg")
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 #先做高斯模糊 + 提升对比度
@@ -312,40 +372,40 @@ cv2.imshow("Original Pic", img)
 cv2.moveWindow("Original Pic", 0, 0)
 
 # 2. 边缘检测
-#edges = cv2.Canny(gray, 40, 160, apertureSize=3)
-edges = cv2.Canny(equalized, 50, 150)   # 提升了对比度后的Canny
+edges = cv2.Canny(equalized, 50, 150)
 
 #设定检测 N 路棋盘
-N = 19
+N = 9
 
 print("Equalized shape:", equalized.shape, "dtype:", equalized.dtype)
 print("Equalized min/max:", np.min(equalized), np.max(equalized))
 cv2.imshow("Equalizeed", equalized)
 cv2.moveWindow("Equalizeed", 320, 0)
 
-# 3. 使用 HoughLinesP 检测"线段"（不是无限延长线）
-# 调整参数以提高检测质量
+# 3. 使用 HoughLinesP 检测"线段"
 lines = cv2.HoughLinesP(edges, 
                         rho=1, 
                         theta=np.pi/180, 
-                        threshold=50,  # 提高threshold减少噪声线条
-                        minLineLength=50,  # 增加最小线条长度
-                        maxLineGap=10)  # 允许更大的gap来连接断开的线条
+                        threshold=50,
+                        minLineLength=50,
+                        maxLineGap=10)
 
 # 创建两个副本用于对比
 img_original_detection = img.copy()
 img_regularized = img.copy()
 
-# 4. 原始检测结果
-lineCount = 0
+# 4. 检测和处理
 if lines is not None:
     # 拆分横线和竖线
-    horizontals, verticals = group_lines_by_orientation(lines)
-
-    # 分组并拟合
     h_lines, v_lines = classify_lines_by_angle(lines)
-    merged_h = cluster_lines_adaptive(h_lines, expected_count=N, axis='h')
-    merged_v = cluster_lines_adaptive(v_lines, expected_count=N, axis='v')
+    
+    # 更宽松的过滤
+    h_lines_filtered = filter_board_lines_lenient(h_lines, img.shape, axis='h')
+    v_lines_filtered = filter_board_lines_lenient(v_lines, img.shape, axis='v')
+    
+    # 保守的聚类合并
+    merged_h = cluster_lines_conservative(h_lines_filtered, expected_count=N, axis='h')
+    merged_v = cluster_lines_conservative(v_lines_filtered, expected_count=N, axis='v')
 
     # 原始检测结果（绿色线条）
     for x1, y1, x2, y2 in merged_h + merged_v:
@@ -354,8 +414,8 @@ if lines is not None:
     # 打印分析信息
     print_line_analysis(merged_h, merged_v)
     
-    # 5. 规整化处理
-    regularized_h, regularized_v = regularize_board_lines(merged_h, merged_v, N)
+    # 5. 改进的规整化处理
+    regularized_h, regularized_v = regularize_board_lines_improved(merged_h, merged_v, N)
     
     print(f"\n规整化后:")
     print(f"横线数量: {len(regularized_h)}")
