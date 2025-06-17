@@ -166,7 +166,7 @@ def main():
         cv2.destroyAllWindows()
         return
     
-    # 分类和过滤线条
+    # 分类和过滤线条 
     h_lines, v_lines = classify_and_filter_lines(lines, img.shape)
     
     # 聚类线条
