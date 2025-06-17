@@ -65,9 +65,9 @@ def classify_lines_by_angle(lines, angle_thresh=10):
             verticals.append((x1, y1, x2, y2))
     return horizontals, verticals
 
-def filter_board_lines(line_group, img_shape, axis='h', margin_ratio=0.05):
+def filter_board_lines_smart(line_group, img_shape, axis='h', margin_ratio=0.1, min_neighbors=2):
     """
-    过滤掉边缘误判的线条和质量不高的线条
+    智能过滤掉边缘误判的线条和孤立的线条
     """
     if not line_group:
         return []
@@ -76,32 +76,60 @@ def filter_board_lines(line_group, img_shape, axis='h', margin_ratio=0.05):
     margin_h = int(height * margin_ratio)
     margin_w = int(width * margin_ratio)
     
-    filtered_lines = []
+    # 1. 首先过滤掉太靠近图像边缘的线条
+    edge_filtered_lines = []
     
     for x1, y1, x2, y2 in line_group:
-        # 过滤掉太靠近边缘的线条
         if axis == 'h':
             # 横线：检查y坐标是否太靠近上下边缘
             y_avg = (y1 + y2) / 2
             if margin_h <= y_avg <= height - margin_h:
-                # 检查线条长度是否合理（至少跨越图像的一定比例）
+                # 检查线条长度是否合理
                 line_length = abs(x2 - x1)
-                if line_length >= width * 0.3:  # 至少30%的图像宽度
-                    filtered_lines.append((x1, y1, x2, y2))
+                if line_length >= width * 0.2:  # 至少20%的图像宽度
+                    edge_filtered_lines.append((x1, y1, x2, y2))
         else:
             # 竖线：检查x坐标是否太靠近左右边缘
             x_avg = (x1 + x2) / 2
             if margin_w <= x_avg <= width - margin_w:
                 # 检查线条长度是否合理
                 line_length = abs(y2 - y1)
-                if line_length >= height * 0.3:  # 至少30%的图像高度
-                    filtered_lines.append((x1, y1, x2, y2))
+                if line_length >= height * 0.2:  # 至少20%的图像高度
+                    edge_filtered_lines.append((x1, y1, x2, y2))
     
-    return filtered_lines
+    if not edge_filtered_lines:
+        return []
+    
+    # 2. 进一步过滤孤立的线条（基于邻近线条密度）
+    positions = []
+    for x1, y1, x2, y2 in edge_filtered_lines:
+        if axis == 'h':
+            positions.append((y1 + y2) / 2)
+        else:
+            positions.append((x1 + x2) / 2)
+    
+    # 计算每条线的邻近线条数量
+    neighbor_counts = []
+    threshold_distance = (max(positions) - min(positions)) / 15  # 动态阈值
+    
+    for i, pos in enumerate(positions):
+        neighbor_count = 0
+        for j, other_pos in enumerate(positions):
+            if i != j and abs(pos - other_pos) <= threshold_distance:
+                neighbor_count += 1
+        neighbor_counts.append(neighbor_count)
+    
+    # 3. 只保留有足够邻居的线条
+    final_lines = []
+    for i, (line, neighbor_count) in enumerate(zip(edge_filtered_lines, neighbor_counts)):
+        if neighbor_count >= min_neighbors or len(edge_filtered_lines) <= 5:  # 如果线条总数很少，放宽要求
+            final_lines.append(line)
+    
+    return final_lines
 
 def cluster_lines_adaptive(line_group, expected_count, axis='h', tolerance=0.1):
     """
-    自适应聚类，动态调整聚类数量
+    改进的自适应聚类，增加异常值检测
     """
     if not line_group:
         return []
@@ -115,44 +143,41 @@ def cluster_lines_adaptive(line_group, expected_count, axis='h', tolerance=0.1):
     if len(coords) < 2:
         return []
     
-    # 首先尝试期望的聚类数量
-    n_clusters = min(expected_count, len(coords))
+    # 异常值检测：移除明显偏离主要分布的点
+    coord_values = [c[0] for c in coords]
+    q1 = np.percentile(coord_values, 25)
+    q3 = np.percentile(coord_values, 75)
+    iqr = q3 - q1
     
-    # 如果线条数量明显超过期望值，可能有误判，先尝试过滤
-    if len(coords) > expected_count * 1.5:
-        # 根据线条质量（长度）进行过滤
-        line_qualities = []
-        for x1, y1, x2, y2 in line_group:
-            if axis == 'h':
-                length = abs(x2 - x1)
-            else:
-                length = abs(y2 - y1)
-            line_qualities.append((length, (x1, y1, x2, y2)))
-        
-        # 保留质量较高的线条
-        line_qualities.sort(reverse=True)
-        keep_count = min(expected_count * 2, len(line_qualities))  # 最多保留2倍的期望数量
-        line_group = [line for _, line in line_qualities[:keep_count]]
-        
-        # 重新计算坐标
-        coords = []
-        for x1, y1, x2, y2 in line_group:
-            coord = (y1 + y2) / 2 if axis == 'h' else (x1 + x2) / 2
-            coords.append([coord])
-        
-        n_clusters = min(expected_count, len(coords))
-
+    # 使用更严格的异常值阈值
+    lower_bound = q1 - 1.5 * iqr
+    upper_bound = q3 + 1.5 * iqr
+    
+    # 过滤异常值
+    filtered_coords = []
+    filtered_lines = []
+    for i, coord in enumerate(coord_values):
+        if lower_bound <= coord <= upper_bound:
+            filtered_coords.append([coord])
+            filtered_lines.append(line_group[i])
+    
+    if len(filtered_coords) < 2:
+        return []
+    
+    # 聚类
+    n_clusters = min(expected_count, len(filtered_coords))
+    
     if n_clusters < 2:
         return []
 
     kmeans = KMeans(n_clusters=n_clusters, n_init=10, random_state=42)
-    labels = kmeans.fit_predict(coords)
+    labels = kmeans.fit_predict(filtered_coords)
     centers = sorted([int(c[0]) for c in kmeans.cluster_centers_])
 
     # 对每个中心，选取该簇中所有点，拟合出一条代表线
     final_lines = []
     for i, center in enumerate(centers):
-        group_lines = [line for idx, line in enumerate(line_group) if labels[idx] == i]
+        group_lines = [line for idx, line in enumerate(filtered_lines) if labels[idx] == i]
         xs, ys = [], []
         for x1, y1, x2, y2 in group_lines:
             xs.extend([x1, x2])
@@ -340,12 +365,15 @@ img_regularized = img.copy()
 lineCount = 0
 if lines is not None:
     # 拆分横线和竖线
-    horizontals, verticals = group_lines_by_orientation(lines)
-
-    # 分组并拟合
     h_lines, v_lines = classify_lines_by_angle(lines)
-    merged_h = cluster_lines_adaptive(h_lines, expected_count=N, axis='h')
-    merged_v = cluster_lines_adaptive(v_lines, expected_count=N, axis='v')
+    
+    # *** 关键修改：先进行智能过滤 ***
+    h_lines_filtered = filter_board_lines_smart(h_lines, img.shape, axis='h', margin_ratio=0.12)
+    v_lines_filtered = filter_board_lines_smart(v_lines, img.shape, axis='v', margin_ratio=0.12)
+    
+    # 然后进行改进的聚类
+    merged_h = cluster_lines_adaptive(h_lines_filtered, expected_count=N, axis='h')
+    merged_v = cluster_lines_adaptive(v_lines_filtered, expected_count=N, axis='v')
 
     # 原始检测结果（绿色线条）
     for x1, y1, x2, y2 in merged_h + merged_v:
