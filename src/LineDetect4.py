@@ -110,8 +110,11 @@ cv2.imshow("Original Pic", img)
 cv2.moveWindow("Original Pic", 0, 0)
 
 # 2. 边缘检测
-edges = cv2.Canny(gray, 40, 160, apertureSize=3)
-#edges = cv2.Canny(equalized, 50, 150)   # 提升了对比度后的Canny
+#edges = cv2.Canny(gray, 40, 160, apertureSize=3)
+edges = cv2.Canny(equalized, 50, 150)   # 提升了对比度后的Canny
+
+#设定检测 N 路棋盘
+N = 9
 
 print("Equalized shape:", equalized.shape, "dtype:", equalized.dtype)
 print("Equalized min/max:", np.min(equalized), np.max(equalized))
@@ -139,8 +142,11 @@ if lines is not None:
     horizontals, verticals = group_lines_by_orientation(lines)
 
     # 分组并拟合
-    merged_h = fit_lines(horizontals, axis='h')
-    merged_v = fit_lines(verticals, axis='v')
+    h_lines, v_lines = classify_lines_by_angle(lines)
+    merged_h = cluster_lines(h_lines, n_clusters=N, axis='h')
+    merged_v = cluster_lines(v_lines, n_clusters=N, axis='v')
+    #merged_h = fit_lines(horizontals, axis='h')
+    #merged_v = fit_lines(verticals, axis='v')
 
     # 合并后画线
     for x1, y1, x2, y2 in merged_h + merged_v:
