@@ -1,3 +1,5 @@
+# 这个版本是目前（2025.6.17 13:22) 表现最好的版本。基本吧棋盘线复现出来了。只不过左边和下边由于
+#误吧棋盘边缘加入了整个，造成所有棋盘线有偏移。
 import cv2
 import numpy as np
 from collections import defaultdict
