@@ -4,8 +4,9 @@ import numpy as np
 # 读取图像
 #img = cv2.imread('../data/raw/cndb1.jpg')
 #img = cv2.imread('../data/raw/OGS4.jpg')
-img = cv2.imread('../data/raw/bd317d54.webp')
-# cv2.imshow('img', img)
+#img = cv2.imread('../data/raw/bd317d54.webp')
+img = cv2.imread('../data/IMG20171015161921.jpg')
+cv2.imshow('原图', img)
 
 # 转换为灰度图像
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

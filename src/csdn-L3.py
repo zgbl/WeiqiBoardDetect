@@ -1,18 +1,24 @@
-#这个版本已经基本解决了正视图棋盘的棋盘线探测。6、18 17PM 最佳版本。
 import cv2
 import numpy as np
 from collections import defaultdict
 import math
 
 # 读取图像
+#img = cv2.imread('../data/raw/cndb1.jpg')
+#img = cv2.imread('../data/raw/OGS4.jpg')
 #img = cv2.imread('../data/raw/bd317d54.webp')
-#img = cv2.imread('../data/raw/IMG20171015161921.jpg')
-img = cv2.imread('../data/raw/OGS3.jpeg')
+img = cv2.imread('../data/raw/IMG20171015161921.jpg')
+
+if img is None:
+    print("无法读取图像文件，请检查路径是否正确")
+    exit()
 
 original_img = img.copy()
+processing_img = img.copy()  # 添加这个变量用于后续处理
 
 # 转换为灰度图像
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+processing_gray = gray.copy()  # 定义processing_gray变量
 
 # 高斯模糊
 blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -21,13 +27,24 @@ blur = cv2.GaussianBlur(gray, (5, 5), 0)
 edges = cv2.Canny(blur, 50, 150)
 cv2.imshow('edges', edges)
 
-# 使用霍夫变换检测直线
-lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=80, minLineLength=100, maxLineGap=10)
+# 使用校正后的图像重新进行边缘检测和直线检测
+corrected_blur = cv2.GaussianBlur(processing_gray, (5, 5), 0)
+corrected_edges = cv2.Canny(corrected_blur, 50, 150)
+cv2.imshow('corrected_edges', corrected_edges)
 
-print(f"检测到 {len(lines)} 条直线")
+# 使用霍夫变换检测直线（在校正后的图像上）
+lines = cv2.HoughLinesP(corrected_edges, 1, np.pi/180, threshold=60, minLineLength=80, maxLineGap=15)
+
+print(f"检测到 {len(lines) if lines is not None else 0} 条直线")
+
+if lines is None:
+    print("未检测到直线，程序结束")
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    exit()
 
 # 创建一个副本用于绘制检测到的线条
-lines_img = img.copy()
+lines_img = processing_img.copy()
 
 # 分离水平线和垂直线
 horizontal_lines = []
@@ -111,7 +128,7 @@ print(f"合并后水平线: {len(merged_horizontal)} 条")
 print(f"合并后垂直线: {len(merged_vertical)} 条")
 
 # 绘制合并后的线条
-merged_img = img.copy()
+merged_img = processing_img.copy()
 for line in merged_horizontal:
     cv2.line(merged_img, (line[0], line[1]), (line[2], line[3]), (0, 255, 0), 2)
 for line in merged_vertical:
@@ -147,7 +164,7 @@ for h_line in merged_horizontal:
 print(f"找到 {len(intersections)} 个交点")
 
 # 绘制交点
-grid_img = img.copy()
+grid_img = processing_img.copy()
 for point in intersections:
     cv2.circle(grid_img, point, 3, (0, 0, 255), -1)
 
@@ -209,7 +226,7 @@ if len(intersections) > 100:  # 降低阈值
         
         # 构建标准19x19网格
         go_grid_points = []
-        grid_img_with_go_points = img.copy()
+        grid_img_with_go_points = processing_img.copy()
         
         for row_idx, row in enumerate(selected_rows):
             # 每行选择19个点
@@ -262,9 +279,9 @@ if len(intersections) > 100:  # 降低阈值
         valid_go_grid_points = [(x, y) for x, y, _, _ in go_grid_points]
     
         # 重新进行圆检测，但这次使用围棋网格信息来辅助
-        circles = cv2.HoughCircles(gray, method=cv2.HOUGH_GRADIENT,
-                                   dp=1, minDist=20, param1=100, param2=19,
-                                   minRadius=8, maxRadius=25)
+        circles = cv2.HoughCircles(processing_gray, method=cv2.HOUGH_GRADIENT,
+                                   dp=1, minDist=15, param1=100, param2=18,
+                                   minRadius=6, maxRadius=30)
         
         if circles is not None:
             circles = np.uint16(np.around(circles))
@@ -272,7 +289,7 @@ if len(intersections) > 100:  # 降低阈值
             
             # 对每个检测到的圆，找到最近的围棋网格点
             stones = []
-            final_img = img.copy()
+            final_img = processing_img.copy()
             
             # 先绘制围棋网格点
             for point in valid_go_grid_points:
@@ -300,7 +317,7 @@ if len(intersections) > 100:  # 降低阈值
                     cv2.circle(final_img, (cx, cy), 2, (255, 255, 0), -1)
                     
                     # 颜色检测
-                    roi = gray[max(0, cy-r):cy+r, max(0, cx-r):cx+r]
+                    roi = processing_gray[max(0, cy-r):cy+r, max(0, cx-r):cx+r]
                     if roi.size > 0:
                         avg_intensity = np.mean(roi)
                         color = 'black' if avg_intensity < 120 else 'white'
@@ -342,6 +359,9 @@ if len(intersections) > 100:  # 降低阈值
             
             # 显示最终结果
             cv2.imshow('final_go_board', final_img)
+            
+        else:
+            print("未检测到圆形，无法识别棋子")
             
     else:
         print("未能检测到足够的网格行来构建19x19围棋棋盘")
