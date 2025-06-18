@@ -302,7 +302,7 @@ def print_line_analysis(h_lines, v_lines):
 
 # 1. 读图 & 转灰度
 #img = cv2.imread("../data/raw/BasicStraightLine2.jpg")
-img = cv2.imread("../data/raw/bd317d54.webp")
+img = cv2.imread("../data/raw/GIMP1.jpg")
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 #先做高斯模糊 + 提升对比度

@@ -1,9 +1,53 @@
-# 这个版本是目前（2025.6.17 13:22) 表现最好的版本。基本吧棋盘线复现出来了。只不过左边和下边由于
-#误吧棋盘边缘加入了整个，造成所有棋盘线有偏移。
+#参考了 网上的代码 Claude 修改
+# 修改版本：结合轮廓检测来准确识别棋盘边框 
 import cv2
 import numpy as np
 from collections import defaultdict
 from sklearn.cluster import KMeans
+
+def detect_board_boundary(img):
+    """
+    使用轮廓检测来找到棋盘边界，参考 cndb1.py 的方法
+    """
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # 高斯模糊
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # 边缘检测
+    edges = cv2.Canny(blur, 50, 150)
+    
+    # 轮廓提取
+    contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # 找到最大的轮廓，即棋盘的轮廓
+    max_area = 0
+    max_contour = None
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area > max_area:
+            max_area = area
+            max_contour = contour
+    
+    if max_contour is not None:
+        # 找到最小外接矩形，即棋盘的四个角点
+        rect = cv2.minAreaRect(max_contour)
+        box = cv2.boxPoints(rect)
+        box = np.intp(box)
+        
+        # 返回边界框的坐标
+        x_coords = box[:, 0]
+        y_coords = box[:, 1]
+        
+        return {
+            'x_min': int(np.min(x_coords)),
+            'x_max': int(np.max(x_coords)),
+            'y_min': int(np.min(y_coords)),
+            'y_max': int(np.max(y_coords)),
+            'box': box
+        }
+    
+    return None
 
 def is_similar(line1, line2, dist_thresh=3, angle_thresh=5):
     x1, y1, x2, y2 = line1
@@ -67,9 +111,9 @@ def classify_lines_by_angle(lines, angle_thresh=10):
             verticals.append((x1, y1, x2, y2))
     return horizontals, verticals
 
-def filter_board_lines(line_group, img_shape, axis='h', margin_ratio=0.05):
+def filter_board_lines(line_group, img_shape, axis='h', margin_ratio=0.02, board_boundary=None):
     """
-    过滤掉边缘误判的线条和质量不高的线条
+    改进版过滤函数：如果有棋盘边界信息，则不过滤边界线条
     """
     if not line_group:
         return []
@@ -81,22 +125,39 @@ def filter_board_lines(line_group, img_shape, axis='h', margin_ratio=0.05):
     filtered_lines = []
     
     for x1, y1, x2, y2 in line_group:
-        # 过滤掉太靠近边缘的线条
+        # 如果有棋盘边界信息，检查线条是否在边界附近
+        is_boundary_line = False
+        if board_boundary:
+            if axis == 'h':
+                y_avg = (y1 + y2) / 2
+                # 检查是否是上下边界线
+                if (abs(y_avg - board_boundary['y_min']) < 20 or 
+                    abs(y_avg - board_boundary['y_max']) < 20):
+                    is_boundary_line = True
+            else:
+                x_avg = (x1 + x2) / 2
+                # 检查是否是左右边界线
+                if (abs(x_avg - board_boundary['x_min']) < 20 or 
+                    abs(x_avg - board_boundary['x_max']) < 20):
+                    is_boundary_line = True
+        
+        # 如果是边界线，直接保留
+        if is_boundary_line:
+            filtered_lines.append((x1, y1, x2, y2))
+            continue
+        
+        # 对非边界线应用原来的过滤逻辑
         if axis == 'h':
-            # 横线：检查y坐标是否太靠近上下边缘
             y_avg = (y1 + y2) / 2
             if margin_h <= y_avg <= height - margin_h:
-                # 检查线条长度是否合理（至少跨越图像的一定比例）
                 line_length = abs(x2 - x1)
-                if line_length >= width * 0.3:  # 至少30%的图像宽度
+                if line_length >= width * 0.3:
                     filtered_lines.append((x1, y1, x2, y2))
         else:
-            # 竖线：检查x坐标是否太靠近左右边缘
             x_avg = (x1 + x2) / 2
             if margin_w <= x_avg <= width - margin_w:
-                # 检查线条长度是否合理
                 line_length = abs(y2 - y1)
-                if line_length >= height * 0.3:  # 至少30%的图像高度
+                if line_length >= height * 0.3:
                     filtered_lines.append((x1, y1, x2, y2))
     
     return filtered_lines
@@ -133,7 +194,7 @@ def cluster_lines_adaptive(line_group, expected_count, axis='h', tolerance=0.1):
         
         # 保留质量较高的线条
         line_qualities.sort(reverse=True)
-        keep_count = min(expected_count * 2, len(line_qualities))  # 最多保留2倍的期望数量
+        keep_count = min(expected_count * 2, len(line_qualities))
         line_group = [line for _, line in line_qualities[:keep_count]]
         
         # 重新计算坐标
@@ -212,36 +273,50 @@ def calculate_average_spacing(positions):
     
     return np.mean(spacings)
 
-def regularize_board_lines(h_lines, v_lines, n_lines=9):
+def regularize_board_lines_with_boundary(h_lines, v_lines, n_lines=19, board_boundary=None):
     """
-    根据围棋盘的规律性，规整化线条位置和长度
-    横线应该从最左边的竖线延伸到最右边的竖线
-    竖线应该从最上边的横线延伸到最下边的横线
+    改进版规整化函数：使用棋盘边界信息来确保边框线条的正确性
     """
-    # 1. 首先确定横线和竖线的理想位置
     regularized_h_lines = []
     regularized_v_lines = []
     
-    # 处理横线位置
+    # 如果有边界信息，使用边界来确定线条范围
+    if board_boundary:
+        x_min = board_boundary['x_min']
+        x_max = board_boundary['x_max']
+        y_min = board_boundary['y_min']
+        y_max = board_boundary['y_max']
+        
+        # 生成等间距的横线位置
+        for i in range(n_lines):
+            y_pos = int(y_min + i * (y_max - y_min) / (n_lines - 1))
+            regularized_h_lines.append((x_min, y_pos, x_max, y_pos))
+        
+        # 生成等间距的竖线位置
+        for i in range(n_lines):
+            x_pos = int(x_min + i * (x_max - x_min) / (n_lines - 1))
+            regularized_v_lines.append((x_pos, y_min, x_pos, y_max))
+        
+        return regularized_h_lines, regularized_v_lines
+    
+    # 如果没有边界信息，使用原来的方法
     h_positions = []
     if h_lines:
         for x1, y1, x2, y2 in h_lines:
             h_positions.append((y1 + y2) / 2)
         h_positions = sorted(h_positions)
     
-    # 处理竖线位置
     v_positions = []
     if v_lines:
         for x1, y1, x2, y2 in v_lines:
             v_positions.append((x1 + x2) / 2)
         v_positions = sorted(v_positions)
     
-    # 2. 计算理想的等间距位置
+    # 计算理想的等间距位置
     ideal_h_positions = []
     ideal_v_positions = []
     
     if len(h_positions) >= 2:
-        # 计算横线的理想位置
         total_h_span = h_positions[-1] - h_positions[0]
         ideal_h_spacing = total_h_span / (n_lines - 1) if n_lines > 1 else 0
         start_h_pos = h_positions[0]
@@ -250,7 +325,6 @@ def regularize_board_lines(h_lines, v_lines, n_lines=9):
             ideal_h_positions.append(int(start_h_pos + i * ideal_h_spacing))
     
     if len(v_positions) >= 2:
-        # 计算竖线的理想位置
         total_v_span = v_positions[-1] - v_positions[0]
         ideal_v_spacing = total_v_span / (n_lines - 1) if n_lines > 1 else 0
         start_v_pos = v_positions[0]
@@ -258,19 +332,17 @@ def regularize_board_lines(h_lines, v_lines, n_lines=9):
         for i in range(n_lines):
             ideal_v_positions.append(int(start_v_pos + i * ideal_v_spacing))
     
-    # 3. 生成规整的线条
-    # 横线：从最左边的竖线延伸到最右边的竖线
+    # 生成规整的线条
     if ideal_h_positions and ideal_v_positions:
-        x_min = min(ideal_v_positions)  # 最左边的竖线位置
-        x_max = max(ideal_v_positions)  # 最右边的竖线位置
+        x_min = min(ideal_v_positions)
+        x_max = max(ideal_v_positions)
         
         for y_pos in ideal_h_positions:
             regularized_h_lines.append((x_min, y_pos, x_max, y_pos))
     
-    # 竖线：从最上边的横线延伸到最下边的横线
     if ideal_v_positions and ideal_h_positions:
-        y_min = min(ideal_h_positions)  # 最上边的横线位置
-        y_max = max(ideal_h_positions)  # 最下边的横线位置
+        y_min = min(ideal_h_positions)
+        y_max = max(ideal_h_positions)
         
         for x_pos in ideal_v_positions:
             regularized_v_lines.append((x_pos, y_min, x_pos, y_max))
@@ -300,24 +372,44 @@ def print_line_analysis(h_lines, v_lines):
         print(f"竖线平均间距: {calculate_average_spacing(v_positions):.1f}")
     print("================")
 
+# 主程序
 # 1. 读图 & 转灰度
 #img = cv2.imread("../data/raw/BasicStraightLine2.jpg")
-img = cv2.imread("../data/raw/GIMP1.jpg")
+#img = cv2.imread("../data/raw/OGS2.jpg")
+img = cv2.imread("../data/raw/bd317d54.webp")
+
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-#先做高斯模糊 + 提升对比度
+# 2. 检测棋盘边界（参考 cndb1.py 的方法）
+print("=== 检测棋盘边界 ===")
+board_boundary = detect_board_boundary(img)
+if board_boundary:
+    print(f"棋盘边界: x({board_boundary['x_min']}, {board_boundary['x_max']}), y({board_boundary['y_min']}, {board_boundary['y_max']})")
+    # 绘制边界框
+    img_with_boundary = img.copy()
+    cv2.rectangle(img_with_boundary, 
+                  (board_boundary['x_min'], board_boundary['y_min']), 
+                  (board_boundary['x_max'], board_boundary['y_max']), 
+                  (255, 0, 0), 3)  # 蓝色边界框
+else:
+    print("未能检测到棋盘边界")
+
+# 先做高斯模糊 + 提升对比度
 blur = cv2.GaussianBlur(gray, (3, 3), 0)
 equalized = cv2.equalizeHist(blur)
 
-#显示原图
+# 显示原图
 cv2.imshow("Original Pic", img) 
 cv2.moveWindow("Original Pic", 0, 0)
 
-# 2. 边缘检测
-#edges = cv2.Canny(gray, 40, 160, apertureSize=3)
-edges = cv2.Canny(equalized, 100, 250)   # 提升了对比度后的Canny
+if board_boundary:
+    cv2.imshow("Board Boundary", img_with_boundary)
+    cv2.moveWindow("Board Boundary", 310, 0)
 
-#设定检测 N 路棋盘
+# 3. 边缘检测
+edges = cv2.Canny(equalized, 50, 150)
+
+# 设定检测 N 路棋盘
 N = 19
 
 print("Equalized shape:", equalized.shape, "dtype:", equalized.dtype)
@@ -325,29 +417,32 @@ print("Equalized min/max:", np.min(equalized), np.max(equalized))
 cv2.imshow("Equalizeed", equalized)
 cv2.moveWindow("Equalizeed", 620, 0)
 
-# 3. 使用 HoughLinesP 检测"线段"（不是无限延长线）
-# 调整参数以提高检测质量
+# 4. 使用 HoughLinesP 检测"线段"
 lines = cv2.HoughLinesP(edges, 
                         rho=1, 
                         theta=np.pi/180, 
-                        threshold=50,  # 提高threshold减少噪声线条
-                        minLineLength=50,  # 增加最小线条长度
-                        maxLineGap=10)  # 允许更大的gap来连接断开的线条
+                        threshold=50,
+                        minLineLength=50,
+                        maxLineGap=10)
 
-# 创建两个副本用于对比
+# 创建副本用于对比
 img_original_detection = img.copy()
 img_regularized = img.copy()
 
-# 4. 原始检测结果
-lineCount = 0
+# 5. 原始检测结果
 if lines is not None:
     # 拆分横线和竖线
     horizontals, verticals = group_lines_by_orientation(lines)
 
-    # 分组并拟合
+    # 分组并拟合（使用改进的过滤函数）
     h_lines, v_lines = classify_lines_by_angle(lines)
-    merged_h = cluster_lines_adaptive(h_lines, expected_count=N, axis='h')
-    merged_v = cluster_lines_adaptive(v_lines, expected_count=N, axis='v')
+    
+    # 使用改进的过滤函数，传入棋盘边界信息
+    filtered_h = filter_board_lines(h_lines, img.shape, axis='h', board_boundary=board_boundary)
+    filtered_v = filter_board_lines(v_lines, img.shape, axis='v', board_boundary=board_boundary)
+    
+    merged_h = cluster_lines_adaptive(filtered_h, expected_count=N, axis='h')
+    merged_v = cluster_lines_adaptive(filtered_v, expected_count=N, axis='v')
 
     # 原始检测结果（绿色线条）
     for x1, y1, x2, y2 in merged_h + merged_v:
@@ -356,8 +451,9 @@ if lines is not None:
     # 打印分析信息
     print_line_analysis(merged_h, merged_v)
     
-    # 5. 规整化处理
-    regularized_h, regularized_v = regularize_board_lines(merged_h, merged_v, N)
+    # 6. 规整化处理（使用边界信息）
+    regularized_h, regularized_v = regularize_board_lines_with_boundary(
+        merged_h, merged_v, N, board_boundary)
     
     print(f"\n规整化后:")
     print(f"横线数量: {len(regularized_h)}")
@@ -367,12 +463,12 @@ if lines is not None:
     for x1, y1, x2, y2 in regularized_h + regularized_v:
         cv2.line(img_regularized, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
-# 6. 显示对比结果
+# 7. 显示对比结果
 cv2.imshow("Original Detection", img_original_detection)
 cv2.moveWindow("Original Detection", 0, 300)
 
 cv2.imshow("Regularized Board", img_regularized)
-cv2.moveWindow("Regularized Board", 620, 300)
+cv2.moveWindow("Regularized Board", 310, 300)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
