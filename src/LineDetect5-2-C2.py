@@ -300,21 +300,36 @@ def detect_board_lines(img_path, target_lines=19, debug=True):
     # 找到最大的轮廓，即棋盘的轮廓
     max_area = 0
     max_contour = None
+    secondMax_contour = None
     for contour in contours:
         area = cv2.contourArea(contour)
         if area > max_area:
+            if max_contour is not None:
+                secondMax_contour = max_contour  #不行，只有一个max_contour
+                print("传递了secondMax_coutour", secondMax_contour)
             max_area = area
             max_contour = contour
 
     # 找到最小外接矩形，即棋盘的四个角点
+    
     rect = cv2.minAreaRect(max_contour)
     box = cv2.boxPoints(rect)
     box = np.intp(box)
+    # 找第二小外接矩形，看是不是棋盘线最外边
+    if secondMax_contour is not None:
+        rect2 = cv2.minAreaRect(secondMax_contour)
+        box2 = cv2.boxPoints(rect2)
+        box2 = np.intp(box2)
+        for point in box2:
+            cv2.circle(img, tuple(point), 10, (0, 0, 200), -1)
+            print("circling:", point)
 
     # 绘制轮廓和角点
     cv2.drawContours(img, [box], 0, (0, 0, 255), 3)
     for point in box:
-        cv2.circle(img, tuple(point), 5, (0, 255, 0), -1)
+        cv2.circle(img, tuple(point), 10, (0, 0, 200), -1)
+        print("circling box2:", point)
+
     width = int(rect[1][0])
     height = int(rect[1][1])
 
