@@ -1,3 +1,4 @@
+# 这个版本在透视变换上，如果原图符合一定要求，无遮挡，图片大小在一定范围，棋盘边缘清楚，则表现很好。
 import cv2
 import numpy as np
 
@@ -5,7 +6,7 @@ import numpy as np
 #image_path = "../data/raw/Toushi1-pre.png"  # 原始图（拍摄的）
 #image_path = "../data/raw/OGS4.jpg"  # 原始图（拍摄的）
 #image_path = "../data/raw/IMG20171015161921.jpg"
-image_path = "../data/raw/Homeboard2.jpg"
+image_path = "../data/raw/IMG20160706171004.jpg"
 img = cv2.imread(image_path)
 
 if img is None:
@@ -48,6 +49,13 @@ else:
 	print('\t右下角：(%d,%d)'%(rect[3][0],rect[3][1]))
 
 	
+	"""
+	for i, (corner, color, label) in enumerate(zip(final_corners, colors, labels)):
+	x, y = int(corner[0]), int(corner[1])
+	cv2.circle(result_img, (x, y), 15, color, -1)
+	cv2.putText(result_img, label, (x+20, y-20), cv2.FONT_HERSHEY_SIMPLEX, 1.5, color, 3)
+	"""
+
 """棋盘坐标：
 	左上角：(111,216)
 	左下角：(47,859)
@@ -57,10 +65,13 @@ else:
 
 im = np.copy(img)
 for p in rect:
-	im = cv2.line(im, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,0,255), 1)
-	im = cv2.line(im, (p[0],p[1]-10), (p[0],p[1]+10), (0,0,255), 1)
+	#im = cv2.line(im, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,0,255), 1)
+	#im = cv2.line(im, (p[0],p[1]-10), (p[0],p[1]+10), (0,0,255), 1)
+
+	cv2.circle(im,(p[0],p[1]),15,(0,255,0),-1)
 	
 cv2.imshow('go', im)
+cv2.imshow('With Cornor', im)
 
 
 lt, lb, rt, rb = rect
@@ -71,7 +82,7 @@ board_gray = cv2.warpPerspective(im_gray, m, (660, 660)) # 对灰度图执行透
 board_bgr = cv2.warpPerspective(img, m, (660, 660)) # 对彩色图执行透视变换
 cv2.imshow('go', board_gray)
 
-"""经过测试，用他的图片，还真的是可以透视变换。"""
+"""经过测试，用他的图片，还真的是可以透视变换。""" 
 
 
 

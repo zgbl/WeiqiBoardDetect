@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 
 # 读取图像
-image_path = "../data/raw/Toushi1-pre.png"  # 原始图（拍摄的）
+#image_path = "../data/raw/Toushi1-pre.png"  # 原始图（拍摄的）
+image_path = "../data/raw/Homeboard4.jpg"
 img = cv2.imread(image_path)
 im_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
