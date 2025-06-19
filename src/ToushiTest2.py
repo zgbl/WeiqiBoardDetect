@@ -16,7 +16,6 @@ cv2.imshow("orginal picture", img)
 
 im_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-
 im_gray = cv2.GaussianBlur(im_gray, (3,3), 0) # 滤波降噪
 
 im_edge = cv2.Canny(im_gray, 30, 50) # 边缘检测
@@ -48,21 +47,6 @@ else:
 	print('\t右上角：(%d,%d)'%(rect[2][0],rect[2][1]))
 	print('\t右下角：(%d,%d)'%(rect[3][0],rect[3][1]))
 
-	
-	"""
-	for i, (corner, color, label) in enumerate(zip(final_corners, colors, labels)):
-	x, y = int(corner[0]), int(corner[1])
-	cv2.circle(result_img, (x, y), 15, color, -1)
-	cv2.putText(result_img, label, (x+20, y-20), cv2.FONT_HERSHEY_SIMPLEX, 1.5, color, 3)
-	"""
-
-"""棋盘坐标：
-	左上角：(111,216)
-	左下角：(47,859)
-	右上角：(753,204)
-	右下角：(823,859)
-"""
-
 im = np.copy(img)
 for p in rect:
 	#im = cv2.line(im, (p[0]-10,p[1]), (p[0]+10,p[1]), (0,0,255), 1)
@@ -81,11 +65,6 @@ m = cv2.getPerspectiveTransform(pts2, pts1) # 生成透视矩阵
 board_gray = cv2.warpPerspective(im_gray, m, (660, 660)) # 对灰度图执行透视变换
 board_bgr = cv2.warpPerspective(img, m, (660, 660)) # 对彩色图执行透视变换
 cv2.imshow('go', board_gray)
-
-"""经过测试，用他的图片，还真的是可以透视变换。""" 
-
-
-
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
