@@ -104,12 +104,139 @@ def merge_lines(lines, is_horizontal=True):
     
     return merged
 
+# 改进的线条合并函数 - 保持线条长度
+def merge_lines_improved(lines, is_horizontal=True):
+    """
+    改进的线条合并算法，保持合并后线条的长度
+    """
+    if not lines:
+        return []
+    
+    merged = []
+    tolerance = 10  # 像素容差
+    
+    # 按位置排序（水平线按y坐标，垂直线按x坐标）
+    if is_horizontal:
+        lines.sort(key=lambda line: (line[1] + line[3]) / 2)
+    else:
+        lines.sort(key=lambda line: (line[0] + line[2]) / 2)
+    
+    current_group = [lines[0]]
+    
+    for i in range(1, len(lines)):
+        if is_horizontal:
+            current_pos = (current_group[-1][1] + current_group[-1][3]) / 2
+            new_pos = (lines[i][1] + lines[i][3]) / 2
+        else:
+            current_pos = (current_group[-1][0] + current_group[-1][2]) / 2
+            new_pos = (lines[i][0] + lines[i][2]) / 2
+        
+        if abs(new_pos - current_pos) < tolerance:
+            current_group.append(lines[i])
+        else:
+            # 处理当前组 - 改进的合并方法
+            if current_group:
+                merged_line = merge_line_group(current_group, is_horizontal)
+                merged.append(merged_line)
+            current_group = [lines[i]]
+    
+    # 处理最后一组
+    if current_group:
+        merged_line = merge_line_group(current_group, is_horizontal)
+        merged.append(merged_line)
+    
+    return merged
+
+def merge_line_group(line_group, is_horizontal):
+    """
+    合并一组相近的线条，保持最大长度覆盖范围
+    """
+    if len(line_group) == 1:
+        return line_group[0]
+    
+    if is_horizontal:
+        # 水平线：保持y坐标的平均值，但x坐标要覆盖最大范围
+        y_coords = []
+        x_mins = []
+        x_maxs = []
+        
+        for line in line_group:
+            x1, y1, x2, y2 = line
+            y_coords.extend([y1, y2])
+            x_mins.append(min(x1, x2))
+            x_maxs.append(max(x1, x2))
+        
+        avg_y = int(np.mean(y_coords))
+        min_x = min(x_mins)
+        max_x = max(x_maxs)
+        
+        return [min_x, avg_y, max_x, avg_y]
+    
+    else:
+        # 垂直线：保持x坐标的平均值，但y坐标要覆盖最大范围
+        x_coords = []
+        y_mins = []
+        y_maxs = []
+        
+        for line in line_group:
+            x1, y1, x2, y2 = line
+            x_coords.extend([x1, x2])
+            y_mins.append(min(y1, y2))
+            y_maxs.append(max(y1, y2))
+        
+        avg_x = int(np.mean(x_coords))
+        min_y = min(y_mins)
+        max_y = max(y_maxs)
+        
+        return [avg_x, min_y, avg_x, max_y]
+
+def extend_lines_to_boundaries(lines, img_shape, is_horizontal=True):
+    """
+    将线条延长到图像边界，确保充分的覆盖范围
+    """
+    height, width = img_shape[:2]
+    extended_lines = []
+    
+    for line in lines:
+        x1, y1, x2, y2 = line
+        
+        if is_horizontal:
+            # 水平线延长到左右边界
+            y = (y1 + y2) // 2  # 使用平均y坐标
+            extended_lines.append([0, y, width-1, y])
+        else:
+            # 垂直线延长到上下边界
+            x = (x1 + x2) // 2  # 使用平均x坐标
+            extended_lines.append([x, 0, x, height-1])
+    
+    return extended_lines
+
 # 合并相近的线条
-merged_horizontal = merge_lines(horizontal_lines, True)
-merged_vertical = merge_lines(vertical_lines, False)
+merged_horizontal = merge_lines_improved(horizontal_lines, True)
+merged_vertical = merge_lines_improved(vertical_lines, False)
 
 print(f"合并后水平线: {len(merged_horizontal)} 条")
 print(f"合并后垂直线: {len(merged_vertical)} 条")
+
+
+# 可选：将线条延长到图像边界
+# merged_horizontal = extend_lines_to_boundaries(merged_horizontal, img.shape, True)
+# merged_vertical = extend_lines_to_boundaries(merged_vertical, img.shape, False)
+
+# 验证线条长度
+print("\n水平线长度对比:")
+if horizontal_lines:
+    original_lengths = [line_length(line) for line in horizontal_lines]
+    merged_lengths = [line_length(line) for line in merged_horizontal]
+    print(f"原始平均长度: {np.mean(original_lengths):.1f}")
+    print(f"合并后平均长度: {np.mean(merged_lengths):.1f}")
+
+print("\n垂直线长度对比:")
+if vertical_lines:
+    original_lengths = [line_length(line) for line in vertical_lines]
+    merged_lengths = [line_length(line) for line in merged_vertical]
+    print(f"原始平均长度: {np.mean(original_lengths):.1f}")
+    print(f"合并后平均长度: {np.mean(merged_lengths):.1f}")
 
 # 绘制合并后的线条
 merged_img = img.copy()

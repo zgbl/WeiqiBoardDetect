@@ -6,8 +6,8 @@ import math
 
 # 读取图像
 #img = cv2.imread('../data/raw/bd317d54.webp')
-#img = cv2.imread('../data/raw/IMG20171015161921.jpg')
-img = cv2.imread('../data/raw/OGS3.jpeg')
+img = cv2.imread('../data/raw/IMG20171015161921.jpg')
+#img = cv2.imread('../data/raw/OGS3.jpeg')
 
 original_img = img.copy()
 
