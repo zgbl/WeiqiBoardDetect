@@ -1,6 +1,6 @@
 #整合版本：先进行透视变换，然后进行棋盘线检测
 #添加自动缩放功能以适应高分辨率图片
-#目前最佳版 2025/6/19 19:30
+# 这版没有损失，但增加了未成功的新功能，是目前正开发的最佳版 6/19 21:11
 import cv2
 import numpy as np
 from collections import defaultdict
@@ -12,7 +12,7 @@ import math
 #img = cv2.imread('../data/raw/OGS3.jpeg')
 #img = cv2.imread('../data/raw/IMG20160706171004.jpg')
 #img = cv2.imread('../data/raw/IMG20160904165505-B.jpg')
-img = cv2.imread('../data/raw/IMG20160706171004-12.jpg')
+img = cv2.imread('../data/raw/IMG20160706171004-16.jpg')
 
 if img is None:
     print("没找到照片")
@@ -50,6 +50,44 @@ def auto_resize_image(image, target_width):
 
 # 缩放图片
 img, scale_factor = auto_resize_image(img, target_width=1500)
+
+# ====== 计算动态参数 ======
+# 基准尺寸：1350像素宽度
+base_width = 1350
+current_width = img.shape[1]
+param_scale = current_width / base_width if current_width < base_width else 1.0
+
+print(f"当前图片宽度: {current_width}, 参数缩放比例: {param_scale:.3f}")
+
+# 动态调整的参数
+perspective_size = int(660 * param_scale)
+print("perspective_size changed from 660 to:", perspective_size)
+perspective_corner = int(650 * param_scale)
+print("perspective_corner changed from 650 to:", perspective_corner)
+hough_threshold = max(20, int(80 * param_scale))
+print("hough_threshold changed from 20 to:", hough_threshold)
+min_line_length = max(20, int(100 * param_scale))
+print("min_line_lengh changed from 20 to:", min_line_length)
+max_line_gap = max(3, int(10 * param_scale))
+print("max_line_gap changed from 3 to:", max_line_gap)
+line_filter_length = max(15, int(50 * param_scale))
+print("line_filter_length changed from: max(15 to: ", line_filter_length)
+merge_tolerance = max(5, int(15 * param_scale))
+print("merge_tolerance changed from 5 to:", merge_tolerance)
+row_tolerance = max(8, int(20 * param_scale))
+print("row_tolerance changed from 8 to:", row_tolerance)
+min_dist_threshold = max(8, int(20 * param_scale))
+print("min_dis_threshold changed from 8 to:", min_dist_threshold)
+min_radius = max(3, int(8 * param_scale))
+print("min_radius changed from 3 to:", min_radius)
+max_radius = max(8, int(25 * param_scale))
+print("max_radius changed  from 8 to:", max_radius)
+min_dist_circles = max(8, int(20 * param_scale))
+print("min_dist_circles changed from 8 to:", min_dist_circles)
+
+print(f"动态参数: perspective_size={perspective_size}, hough_threshold={hough_threshold}")
+print(f"min_line_length={min_line_length}, merge_tolerance={merge_tolerance}")
+
 # ====== 缩放功能结束 ======
 
 original_img = img.copy()
@@ -102,18 +140,18 @@ else:
 
     # 执行透视变换
     lt, lb, rt, rb = rect
-    pts1 = np.float32([(10,10), (10,650), (650,10), (650,650)]) # 预期的棋盘四个角的坐标
+    pts1 = np.float32([(10,10), (10,perspective_corner), (perspective_corner,10), (perspective_corner,perspective_corner)]) # 预期的棋盘四个角的坐标
     pts2 = np.float32([lt, lb, rt, rb]) # 当前找到的棋盘四个角的坐标
     m = cv2.getPerspectiveTransform(pts2, pts1) # 生成透视矩阵
     
     # 对原图执行透视变换
-    img = cv2.warpPerspective(original_img, m, (660, 660))
-    gray = cv2.warpPerspective(im_gray, m, (660, 660))
+    img = cv2.warpPerspective(original_img, m, (perspective_size, perspective_size))
+    gray = cv2.warpPerspective(im_gray, m, (perspective_size, perspective_size))
     
     cv2.imshow('Perspective Corrected', img)
     print("透视变换完成！")
 
-# ====== 棋盘线检测部分======
+# ====== 棋盘线检测部分 ======
 print("开始棋盘线检测...")
 
 # 高斯模糊
@@ -124,7 +162,7 @@ edges = cv2.Canny(blur, 50, 150)
 cv2.imshow('edges', edges)
 
 # 使用霍夫变换检测直线
-lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=80, minLineLength=100, maxLineGap=10)
+lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=hough_threshold, minLineLength=min_line_length, maxLineGap=max_line_gap)
 
 if lines is None:
     print("未检测到任何直线")
@@ -156,7 +194,7 @@ for line in lines:
     length = line_length(line[0])
     
     # 只考虑足够长的线条
-    if length > 50:
+    if length > line_filter_length:
         # 水平线 (角度接近0或180度)
         if angle < 10 or angle > 170:
             horizontal_lines.append(line[0])
@@ -177,7 +215,7 @@ def merge_lines(lines, is_horizontal=True):
         return []
     
     merged = []
-    tolerance = 15  # 像素容差
+    tolerance = merge_tolerance  # 使用动态参数
     
     # 按位置排序（水平线按y坐标，垂直线按x坐标）
     if is_horizontal:
@@ -262,7 +300,8 @@ for point in intersections:
 cv2.imshow('grid_points', grid_img)
 
 # 如果交点数量合理，尝试构建19x19的标准围棋网格
-if len(intersections) > 100:  # 降低阈值
+intersection_threshold = max(50, int(100 * param_scale))  # 动态调整交点阈值
+if len(intersections) > intersection_threshold:
     print("开始构建19x19围棋网格...")
     
     # 按行列排序交点
@@ -280,7 +319,6 @@ if len(intersections) > 100:  # 降低阈值
     rows = []
     current_row = []
     last_y = intersections[0][1]
-    row_tolerance = 20  # 同一行的y坐标容差
     
     for point in intersections:
         if abs(point[1] - last_y) < row_tolerance:
@@ -301,7 +339,8 @@ if len(intersections) > 100:  # 降低阈值
     print(f"检测到 {len(rows)} 行")
     
     # 过滤掉点数太少的行（可能是噪声）
-    valid_rows = [row for row in rows if len(row) >= 15]  # 至少15个点才算有效行
+    min_points_per_row = max(10, int(15 * param_scale))  # 动态调整每行最少点数
+    valid_rows = [row for row in rows if len(row) >= min_points_per_row]
     print(f"有效行数: {len(valid_rows)}")
     
     # 如果有效行数接近19行，尝试提取标准19x19网格
@@ -371,8 +410,8 @@ if len(intersections) > 100:  # 降低阈值
     
         # 重新进行圆检测，但这次使用围棋网格信息来辅助
         circles = cv2.HoughCircles(gray, method=cv2.HOUGH_GRADIENT,
-                                   dp=1, minDist=20, param1=100, param2=19,
-                                   minRadius=8, maxRadius=25)
+                                   dp=1, minDist=min_dist_circles, param1=100, param2=19,
+                                   minRadius=min_radius, maxRadius=max_radius)
         
         if circles is not None:
             circles = np.uint16(np.around(circles))
@@ -402,7 +441,7 @@ if len(intersections) > 100:  # 降低阈值
                         closest_grid_pos = (row, col)
                 
                 # 如果圆心离最近围棋网格点足够近，认为这是一个有效的棋子
-                if min_dist < 20:  # 20像素的容差
+                if min_dist < min_dist_threshold:  # 使用动态参数
                     # 绘制圆形
                     cv2.circle(final_img, (cx, cy), r, (255, 255, 0), 2)
                     cv2.circle(final_img, (cx, cy), 2, (255, 255, 0), -1)
