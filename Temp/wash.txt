@@ -1,8 +1,0 @@
-	•	Built full-stack web and serverless applications using React, Node.js, and Python, integrating dynamic frontend experiences with scalable cloud-based backends.
-	•	Designed intelligent daemons to monitor live screen feeds (e.g., Go/围棋 matches) and stream structured data to web dashboards, combining OpenCV-based image recognition with cloud APIs.
-	•	Architected cross-cloud solutions using AWS, Azure, GCP, and OCI, optimizing deployments through Terraform and Ansible infrastructure-as-code pipelines.
-	•	Delivered high-performance REST APIs and microservices, deployed with Docker/Kubernetes for orchestration and CI/CD via GitHub Actions and Jenkins.
-	•	Led implementation of LAMP-based applications for legacy integration, enhancing performance and maintainability using modern PHP and MySQL practices.
-	•	Developed automation tools in Python to streamline system monitoring, file ingestion, and remote job execution using cloud SDKs and CLIs.
-	•	Researched and prototyped AI model training workflows using Jupyter Notebook, incorporating low-code tools (e.g., Windsurf, Cline) for fast experimentation.
-	•	Supported mobile and web application pipelines with backends connected to image recognition models, real-time WebSockets, and scalable API gateways.
