@@ -10,11 +10,9 @@ import math
 #img = cv2.imread('../data/raw/bd317d54.webp')
 #img = cv2.imread('../data/raw/IMG20171015161921.jpg')
 #img = cv2.imread('../data/raw/OGS3.jpeg')
-#img = cv2.imread('../data/raw/IMG20160706171004.jpg')
-img = cv2.imread('../data/raw/IMG20161205130156-16.jpg')
+img = cv2.imread('../data/raw/IMG20160706171004.jpg')
 #img = cv2.imread('../data/raw/IMG20160904165505-B.jpg')
 #img = cv2.imread('../data/raw/IMG20160706171004-12.jpg')
-
 
 if img is None:
     print("没找到照片")

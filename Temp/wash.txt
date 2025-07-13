@@ -1,0 +1,6 @@
+Cloud Architecture: AWS (EC2, VPC, S3, RDS, Lambda), Azure (VM, VNet, Cosmos DB, App Services), Hybrid Cloud
+DevOps & IaC: Terraform, Kubernetes (AKS/EKS), Docker, GitHub Actions, CI/CD, Helm, Ansible, Jenkins
+Programming & Scripting: Python, PowerShell, Bash, C#, Go (basic), YAML, JSON, RESTful APIs
+Data & AI Integrations: Azure Synapse, Data Factory, Databricks, Cognitive Services, ML Pipelines
+Blockchain Exposure: Ethereum, Solidity (learning), Smart Contract Concepts, Decentralized Systems Research
+Leadership: Cross-functional Team Management, Technical Strategy, Engineering Hiring, Stakeholder Communication

@@ -1,3 +1,4 @@
+# V5-1 版本，解决了透视变换中丢失边缘线的问题并且已经加入画棋盘确认棋子。
 #整合版本：先进行透视变换，然后进行棋盘线检测
 #添加自动缩放功能以适应高分辨率图片
 #这个版本最佳，解决了小图丢失棋盘角的问题。目前最佳 2025/6/20 2:42
@@ -9,11 +10,14 @@ import math
 # 读取图像
 #img = cv2.imread('../data/raw/bd317d54.webp')
 #img = cv2.imread('../data/raw/IMG20171015161921.jpg')
-#img = cv2.imread('../data/raw/OGS3.jpeg')
+img = cv2.imread('../data/raw/OGS3.jpeg')
 #img = cv2.imread('../data/raw/IMG20160706171004.jpg')
-img = cv2.imread('../data/raw/IMG20161205130156-16.jpg')
+#img = cv2.imread('../data/raw/IMG20161205130156-16.jpg') # 这个图片现在不能检测
 #img = cv2.imread('../data/raw/IMG20160904165505-B.jpg')
 #img = cv2.imread('../data/raw/IMG20160706171004-12.jpg')
+#img = cv2.imread('../data/raw/WechatIMG123.jpg')
+#img = cv2.imread('../data/raw/WechatIMG124.jpg')
+#img = cv2.imread('../data/raw/ogs_empty2c.jpg')
 
 
 if img is None:
@@ -52,6 +56,7 @@ def auto_resize_image(image, target_width):
 
 # 缩放图片
 img, scale_factor = auto_resize_image(img, target_width=1500)
+print(f"DEBUG: After auto_resize_image, img shape: {img.shape}") # DEBUG 1
 
 # ====== 计算动态参数 ======
 # 基准尺寸：1350像素宽度
@@ -83,13 +88,14 @@ if current_width <= 1000:
 elif current_width <= 1500:
     # 中图参数集 (适用于宽度 1000-1500px)
     print("使用中图参数集")
-    perspective_size = 500
+    perspective_size = 510
     perspective_corner = 490
     hough_threshold = 60
     min_line_length = 70
     max_line_gap = 10
     line_filter_length = 35
-    merge_tolerance = 12
+    #merge_tolerance = 12
+    merge_tolerance = 20
     row_tolerance = 15
     min_dist_threshold = 15
     min_radius = 6
@@ -131,6 +137,7 @@ def improve_edge_detection(img):
     改进的边缘检测，减少图片边界干扰
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    print("用到了138行的 gray = ")
     height, width = gray.shape
     
     # 创建掩码，排除图片边界区域
@@ -146,6 +153,7 @@ def improve_edge_detection(img):
     
     # 边缘检测
     edges = cv2.Canny(blurred, 50, 100)
+    #edges = cv2.Canny(gray, 50, 100)  #实验性地跳过高斯模糊
     
     # 应用掩码，去除边界区域
     edges = cv2.bitwise_and(edges, mask)
@@ -250,7 +258,7 @@ def validate_board_corners(corners, img):
     # 检查四条边的长度
     side_lengths = [
         np.sqrt((rt[0] - lt[0])**2 + (rt[1] - lt[1])**2),  # 上边
-        np.sqrt((rb[0] - rt[0])**2 + (rb[1] - rt[1])**2),  # 右边
+        np.sqrt((rb[0] - rt[0])**2 + (rb[1] - rb[1])**2),  # 右边
         np.sqrt((lb[0] - rb[0])**2 + (lb[1] - rb[1])**2),  # 下边
         np.sqrt((lt[0] - lb[0])**2 + (lt[1] - lb[1])**2)   # 左边
     ]
@@ -275,6 +283,7 @@ print("开始改进的透视变换...")
 
 # ====== 透视变换部分 ======
 im_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+cv2.imshow("im_gray", im_gray)
 
 # 方案1: 使用改进的边缘检测（不使用dilate）
 print("尝试方案1: 改进的边缘检测...")
@@ -286,7 +295,7 @@ cv2.moveWindow("Improved Edge Detection", 300, 0)
 contours, hierarchy = cv2.findContours(im_edge_improved, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 print(f"方案1找到 {len(contours)} 个轮廓")
 
-# 使用改进的轮廓查找
+# 使用改进的轮廓查找 
 rect = find_board_contour_improved(contours, img.shape)
 
 # 验证角点
@@ -304,8 +313,8 @@ if rect is None:
     kernel = np.ones((2, 2), np.uint8)
     im_edge_dilated = cv2.dilate(im_edge_original, kernel, iterations=1)
     
-    cv2.imshow('Original + Light Dilate', im_edge_dilated)
-    cv2.moveWindow("Original + Light Dilate", 600, 0)
+    #cv2.imshow('Original + Light Dilate', im_edge_dilated)
+    #cv2.moveWindow("Original + Light Dilate", 600, 0)
     
     # 再次查找轮廓
     contours2, hierarchy2 = cv2.findContours(im_edge_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -346,10 +355,18 @@ if rect is None:
 
 # 检查是否找到棋盘
 if rect is None:
-    print('在图像文件中找不到棋盘！使用原图进行后续处理...')
-    # 如果没找到棋盘轮廓，使用原图
+    print('未能找到棋盘！将使用原图进行后续处理，但棋盘线和棋子检测可能不准确。')
+    # If no board contour is found, revert to original image for display, but further processing won't be reliable
     img = original_img
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #print("用到了359行的 gray = ")
+    
+    # Set dummy values for perspective_size and perspective_corner for downstream use
+    # These will likely result in incorrect grid calculations if no rect was found
+    perspective_size = min(img.shape[0], img.shape[1]) 
+    perspective_corner = perspective_size - 10 # Just a placeholder
+    
 else:
     print('棋盘坐标：')
     print('\t左上角:(%d,%d)'%(rect[0][0],rect[0][1]))
@@ -357,36 +374,129 @@ else:
     print('\t右上角:(%d,%d)'%(rect[2][0],rect[2][1]))
     print('\t右下角:(%d,%d)'%(rect[3][0],rect[3][1]))
 
-    # 显示找到的角点
-    corner_img = img.copy()
+    # Display found corners
+    corner_img = img.copy()  # 注意这里 img 还是原始尺寸的图像
     for p in rect:
         cv2.circle(corner_img,(p[0],p[1]),15,(0,255,0),-1)
     cv2.imshow('Found Corners', corner_img)
     cv2.moveWindow("Found Corners", 900, 0)
 
-    # 执行透视变换
+    # === 新增调试代码：在原始图像上绘制检测到的棋盘边界 ===  7/13 调试代码
+    debug_original_with_rect = original_img.copy()
+    lt, lb, rt, rb = rect # 确保 rect 已经被解包
+
+        # 将角点连接起来，绘制一个矩形或多边形
+    # 注意：rect 中的点顺序是 (lt, lb, rt, rb)，需要调整为 (tl, tr, br, bl) 才能正确绘制多边形
+    pts_for_poly = np.array([lt, rt, rb, lb], np.int32).reshape((-1, 1, 2))
+    cv2.polylines(debug_original_with_rect, [pts_for_poly], True, (0, 0, 255), 3) # 红色粗线
+    
+    # 也可以再次绘制角点，确保它们位置正确
+    cv2.circle(debug_original_with_rect, tuple(lt), 15, (0, 255, 255), -1) # 黄色圆点
+    cv2.circle(debug_original_with_rect, tuple(rt), 15, (0, 255, 255), -1)
+    cv2.circle(debug_original_with_rect, tuple(rb), 15, (0, 255, 255), -1)
+    cv2.circle(debug_original_with_rect, tuple(lb), 15, (0, 255, 255), -1)
+    
+    cv2.imshow('Debug: Rect on Original Image', debug_original_with_rect)
+    cv2.moveWindow('Debug: Rect on Original Image', 100, 100) # 调整位置，避免重叠
+    #到这行之上 都是7/13 临时增加的调试代码，
+
+    # Perform perspective transform
     lt, lb, rt, rb = rect
-    pts1 = np.float32([(10,10), (10,perspective_corner), (perspective_corner,10), (perspective_corner,perspective_corner)])
-    pts2 = np.float32([lt, lb, rt, rb])
-    m = cv2.getPerspectiveTransform(pts2, pts1)
+
+    padding = 10  # 空白边距像素，可调整
+    perspective_withpadding_size  = perspective_size + 2 * padding
+
+    # 添加额外的扩展像素
+    extra_pixels = 3  # 可以调整为1-3个像素
     
-    # 对原图执行透视变换
-    img = cv2.warpPerspective(original_img, m, (perspective_size, perspective_size))
-    gray = cv2.warpPerspective(im_gray, m, (perspective_size, perspective_size))
+    # === 关键修正: 修正透视变换的目标坐标 `pts1` ===
+    # 目标点应覆盖整个 perspective_size x perspective_size 区域
+    #pts1_standard = np.float32([[0, 0], [perspective_size - 1, 0], [perspective_size - 1, perspective_size - 1], [0, perspective_size - 1]])
+    # 方案1：让棋盘占据除了padding之外的整个区域
+    #pts1_standard = np.float32([[padding, padding], 
+    #                            [perspective_size + padding + extra_pixels, padding], 
+    #                            [perspective_size + padding + extra_pixels, perspective_size + padding + extra_pixels], 
+    #                            [padding, perspective_size + padding + extra_pixels]])
+    pts1_standard = np.float32([
+    [padding - extra_pixels, padding - extra_pixels],
+    [padding + perspective_size + extra_pixels, padding - extra_pixels],
+    [padding + perspective_size + extra_pixels, padding + perspective_size + extra_pixels],
+    [padding - extra_pixels, padding + perspective_size + extra_pixels]
+])
+    #pts1_standard = np.float32([[0, 0], 
+    #                    [perspective_size, 0], 
+    #                    [perspective_size, perspective_size], 
+    #                    [0, perspective_size]])
+
+
+    # Reorder the detected corners for cv2.getPerspectiveTransform
+    # (top-left, top-right, bottom-right, bottom-left)
+    #pts2_ordered = np.float32([lt, rt, rb, lb]) 
     
+    # 调整源点：让检测到的角点向外扩展
+    pts2_ordered = np.float32([
+    [lt[0] - extra_pixels, lt[1] - extra_pixels],  # 左上角向左上扩展
+    [rt[0] + extra_pixels, rt[1] - extra_pixels],  # 右上角向右上扩展  
+    [rb[0] + extra_pixels, rb[1] + extra_pixels],  # 右下角向右下扩展
+    [lb[0] - extra_pixels, lb[1] + extra_pixels]   # 左下角向左下扩展
+])
+    
+    # Using pts1_standard and pts2_ordered
+    m = cv2.getPerspectiveTransform(pts2_ordered, pts1_standard)
+    
+    # 添加一个平移矩阵，使图像整体向右下偏移 padding 像素
+    #M_translate = np.array([[1, 0, padding],
+    #                        [0, 1, padding],
+    #                        [0, 0, 1]], dtype=np.float32)
+
+    # 新的透视变换矩阵：先透视变换，再加平移
+    #m_padded = M_translate @ m
+
+    print(f"perspective_size: {perspective_size}", "Line 429")
+    print(f"padding: {padding}")
+    print(f"perspective_withpadding_size: {perspective_withpadding_size}")
+    print(f"pts1_standard: {pts1_standard}")
+    print(f"pts2_ordered: {pts2_ordered}", "Line 433")
+    # Apply perspective transform to original image and its grayscale version
+    #img = cv2.warpPerspective(original_img, m, (perspective_size, perspective_size))
+    #gray = cv2.warpPerspective(im_gray, m, (perspective_size, perspective_size))
+    #img = cv2.warpPerspective(original_img, m_padded, (perspective_withpadding_size, perspective_withpadding_size))
+    img = cv2.warpPerspective(original_img, m, (perspective_withpadding_size, perspective_withpadding_size))
+    #gray = cv2.warpPerspective(im_gray, m_padded, (perspective_withpadding_size, perspective_withpadding_size))
+    gray2 = cv2.warpPerspective(im_gray, m, (perspective_withpadding_size, perspective_withpadding_size))
+    print("用到了445行的 gray = ")
+    #img = cv2.warpPerspective(original_img, m, (perspective_size, perspective_size))
+    #gray = cv2.warpPerspective(im_gray, m, (perspective_size, perspective_size))  
+
+    print(f"DEBUG: After warpPerspective, img shape: {img.shape}") # DEBUG 2
+    print(f"DEBUG: After warpPerspective, gray shape: {gray2.shape}") # DEBUG 3
+
     cv2.imshow('Perspective Corrected', img)
     cv2.moveWindow("Perspective Corrected", 1200, 0)
     print("透视变换完成！")
 
-# ====== 棋盘线检测部分 ======
+# ====== 棋盘线和交点计算部分 ======
 print("开始棋盘线检测...")
 
+cv2.imshow("gray2", gray2)
+
 # 高斯模糊
-blur = cv2.GaussianBlur(gray, (5, 5), 0)
+blur = cv2.GaussianBlur(gray2, (5, 5), 0)
+print(f"DEBUG: Before Canny, blur shape: {blur.shape}") # DEBUG 4
+cv2.imshow("blur", blur)
 
 # 边缘检测
-edges = cv2.Canny(blur, 50, 150)
+edges = cv2.Canny(blur, 50, 100)
+#edges = cv2.Canny(blur, 50, 150)
+#edges = im_edge_improved.copy() # 或者直接使用 im_edge_improved
+print(f"DEBUG: Before HoughLinesP, edges shape: {edges.shape}") # DEBUG 5
 cv2.imshow('edges', edges)
+# 如果您仍然想在高斯模糊后应用Canny，确保是针对im_edge_improved进行，或者直接使用im_edge_improved
+# 比如：
+# blur_improved_edges = cv2.GaussianBlur(im_edge_improved, (3, 3), 0) # 可以选择性地再次模糊
+# edges = cv2.Canny(blur_improved_edges, 50, 150) # 如果需要再次Canny，参数可能需要调整
+cv2.imshow('edges for Hough', edges) # 打开这行，确认霍夫变换使用的图是正确的
+cv2.moveWindow('edges for Hough', 600, 0) # 移动一下窗口，方便查看
 
 # 使用霍夫变换检测直线
 lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=hough_threshold, minLineLength=min_line_length, maxLineGap=max_line_gap)
@@ -431,7 +541,7 @@ for line in lines:
             vertical_lines.append(line[0])
             cv2.line(lines_img, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
-print(f"水平线: {len(horizontal_lines)} 条")
+print(f"水平线: {len(horizontal_lines)} 条, 470行")
 print(f"垂直线: {len(vertical_lines)} 条")
 
 cv2.imshow('detected_lines', lines_img)
@@ -480,6 +590,16 @@ def merge_lines(lines, is_horizontal=True):
 merged_horizontal = merge_lines(horizontal_lines, True)
 merged_vertical = merge_lines(vertical_lines, False)
 
+print("合并后的水平线坐标:")
+for line in merged_horizontal:
+    y_avg = (line[1] + line[3]) // 2
+    print(f"y={y_avg}, line={line}")
+
+print("合并后的垂直线坐标:")
+for line in merged_vertical:
+    x_avg = (line[0] + line[2]) // 2
+    print(f"x={x_avg}, line={line}")
+
 print(f"合并后水平线: {len(merged_horizontal)} 条")
 print(f"合并后垂直线: {len(merged_vertical)} 条")
 
@@ -490,7 +610,7 @@ for line in merged_horizontal:
 for line in merged_vertical:
     cv2.line(merged_img, (line[0], line[1]), (line[2], line[3]), (255, 0, 0), 2)
 
-cv2.imshow('merged_lines', merged_img)
+#cv2.imshow('merged_lines', merged_img)
 
 # 计算交点
 def line_intersection(line1, line2):
@@ -511,13 +631,22 @@ def line_intersection(line1, line2):
 
 # 找到所有交点
 intersections = []
+# 定义一个小的像素缓冲区，以容纳可能略微超出边界的交点
+# 例如，5到10个像素通常足够
+intersection_buffer = 10 
+
 for h_line in merged_horizontal:
     for v_line in merged_vertical:
         intersection = line_intersection(h_line, v_line)
         if intersection:
-            intersections.append(intersection)
+            # 放宽交点过滤的边界，允许在 perspective_size 范围外有少量像素
+            if (intersection[0] >= -intersection_buffer and 
+                intersection[0] < perspective_size + intersection_buffer and
+                intersection[1] >= -intersection_buffer and 
+                intersection[1] < perspective_size + intersection_buffer):
+                intersections.append(intersection)
 
-print(f"找到 {len(intersections)} 个交点")
+print(f"找到 {len(intersections)} 个交点. 代码550行")
 
 # 绘制交点
 grid_img = img.copy()
@@ -583,110 +712,108 @@ if len(intersections) > intersection_threshold:
         
         # 构建标准19x19网格
         go_grid_points = []
-        grid_img_with_go_points = img.copy()
+        grid_img_with_go_points = img.copy() # This will be the image to show calculated grid points
         
-        for row_idx, row in enumerate(selected_rows):
-            # 每行选择19个点
-            if len(row) >= 19:
-                # 如果这一行点数超过19，选择最均匀分布的19个点
-                if len(row) > 19:
-                    # 选择x坐标最均匀分布的19个点
-                    step = len(row) / 19
-                    selected_points = []
-                    for i in range(19):
-                        idx = min(int(i * step), len(row) - 1)
-                        selected_points.append(row[idx])
-                    row_points = selected_points
-                else:
-                    row_points = row[:19]
-            else:
-                # 如果点数不足19，尝试插值
-                if len(row) >= 2:
-                    # 简单线性插值生成19个点
-                    start_x = row[0][0]
-                    end_x = row[-1][0]
-                    y = row[0][1]  # 使用第一个点的y坐标
-                    
-                    row_points = []
-                    for i in range(19):
-                        x = start_x + (end_x - start_x) * i / 18
-                        row_points.append((int(x), int(y)))
-                else:
-                    continue  # 跳过点数太少的行
-            
-            # 添加到围棋网格点列表
-            for col_idx, point in enumerate(row_points):
-                go_grid_points.append((point[0], point[1], row_idx, col_idx))
+        # Initialize grid_xy here. Crucially, its dimensions should align with perspective_size
+        grid_xy = np.zeros((19, 19, 2), dtype=np.int32)
+
+        # === 核心修正：基于 perspective_size 重新计算棋盘网格点，而不是依赖于不精确的检测点 ===
+        # 计算每个格子的预期尺寸
+        # 如果棋盘是 19x19，则有 18 个格子间隔
+        cell_interval = (perspective_size - 1) / 18.0 
+        
+        for row_idx in range(19):
+            for col_idx in range(19):
+                # 计算理想的网格点坐标
+                x_ideal = int(col_idx * cell_interval)
+                y_ideal = int(row_idx * cell_interval)
                 
-                # 绘制围棋网格点
-                cv2.circle(grid_img_with_go_points, point, 2, (0, 255, 255), -1)  # 黄色小点
+                # 如果有足够精确的检测点，可以尝试微调这些理想点到最近的检测点
+                # 但为了确保棋盘线不越界，此处优先使用理想的、基于 perspective_size 的点
+                # 如果需要微调，可以在确保不越界的前提下进行
+                
+                go_grid_points.append((x_ideal, y_ideal, row_idx, col_idx))
+                grid_xy[row_idx, col_idx] = [x_ideal, y_ideal] # Fill grid_xy
+                
+                # 绘制围棋网格点（在最终图像上）
+                cv2.circle(grid_img_with_go_points, (x_ideal + padding, y_ideal + padding), 2, (0, 255, 255), -1)  # 黄色小点
                 
                 # 在关键点上标注坐标
                 if row_idx % 3 == 0 and col_idx % 3 == 0:  # 每3个点标注一次
                     cv2.putText(grid_img_with_go_points, f"({row_idx},{col_idx})", 
-                               (point[0]-15, point[1]-10), cv2.FONT_HERSHEY_SIMPLEX, 
+                               (x_ideal-15, y_ideal-10), cv2.FONT_HERSHEY_SIMPLEX, 
                                0.3, (0, 255, 255), 1)
         
         print(f"构建了 {len(go_grid_points)} 个围棋网格点 (目标: 361)")
         
-        # 显示只有围棋网格点的图像
-        cv2.imshow('go_grid_only', grid_img_with_go_points)
+        # Display calculated grid points (on the temporary extended canvas)
+        cv2.imshow('Calculated Grid Points', grid_img_with_go_points)
+        cv2.moveWindow('Calculated Grid Points', 1500, 0) # Moved to 1500 to avoid overlap
+        print("已显示计算出的网格点。")
+
+        # Use the standard perspective corrected image for final_img
+        final_img = img.copy() 
         
-        # 使用围棋网格点重新定位棋子
-        valid_go_grid_points = [(x, y) for x, y, _, _ in go_grid_points]
-    
-        # 重新进行圆检测，但这次使用围棋网格信息来辅助
-        circles = cv2.HoughCircles(gray, method=cv2.HOUGH_GRADIENT,
+        # Draw the calculated grid lines on final_img
+        for r in range(19):
+            cv2.line(final_img, tuple(grid_xy[r, 0].astype(int)), tuple(grid_xy[r, 18].astype(int)), (0, 0, 0), 1) # Black lines
+        for c in range(19):
+            cv2.line(final_img, tuple(grid_xy[0, c].astype(int)), tuple(grid_xy[18, c].astype(int)), (0, 0, 0), 1) # Black lines
+        
+        # Draw calculated grid points (yellow small dots) on final_img
+        for point_data in go_grid_points:
+            cv2.circle(final_img, (point_data[0], point_data[1]), 2, (0, 255, 255), -1)
+
+        # 重新进行圆检测，使用原始的透视矫正图像
+        circles = cv2.HoughCircles(gray2, method=cv2.HOUGH_GRADIENT,
                                    dp=1, minDist=min_dist_circles, param1=100, param2=19,
                                    minRadius=min_radius, maxRadius=max_radius)
         
+        stones = []
         if circles is not None:
             circles = np.uint16(np.around(circles))
             print(f'检测到 {len(circles[0])} 个圆形')
-            
-            # 对每个检测到的圆，找到最近的围棋网格点
-            stones = []
-            final_img = img.copy()
-            
-            # 先绘制围棋网格点
-            for point in valid_go_grid_points:
-                cv2.circle(final_img, point, 2, (0, 255, 255), -1)
             
             for circle in circles[0, :]:
                 cx, cy, r = circle
                 
                 # 找到最近的围棋网格点
                 min_dist = float('inf')
-                closest_grid_point = None
-                closest_grid_pos = None
+                closest_grid_point_coords = None
+                closest_grid_pos_indices = None # (row, col)
                 
-                for x, y, row, col in go_grid_points:
-                    dist = math.sqrt((cx - x)**2 + (cy - y)**2)
-                    if dist < min_dist:
-                        min_dist = dist
-                        closest_grid_point = (x, y)
-                        closest_grid_pos = (row, col)
+                # === 在这里，我们使用 grid_xy 查找最近的网格点，而不是 go_grid_points ===
+                for row_idx in range(19):
+                    for col_idx in range(19):
+                        x_grid, y_grid = grid_xy[row_idx, col_idx]
+                        dist = math.sqrt((cx - x_grid)**2 + (cy - y_grid)**2)
+                        if dist < min_dist:
+                            min_dist = dist
+                            closest_grid_point_coords = (x_grid, y_grid)
+                            closest_grid_pos_indices = (row_idx, col_idx)
                 
                 # 如果圆心离最近围棋网格点足够近，认为这是一个有效的棋子
-                if min_dist < min_dist_threshold:  # 使用动态参数
-                    # 绘制圆形
-                    cv2.circle(final_img, (cx, cy), r, (255, 255, 0), 2)
-                    cv2.circle(final_img, (cx, cy), 2, (255, 255, 0), -1)
-                    
+                if closest_grid_point_coords is not None and min_dist < min_dist_threshold:
                     # 颜色检测
-                    roi = gray[max(0, cy-r):cy+r, max(0, cx-r):cx+r]
+                    roi = gray2[max(0, cy-r):cy+r, max(0, cx-r):cx+r]
                     if roi.size > 0:
                         avg_intensity = np.mean(roi)
                         color = 'black' if avg_intensity < 120 else 'white'
-                        stones.append((color, closest_grid_pos[0], closest_grid_pos[1]))
+                        
+                        # Add stone to list, using 1-based indexing for display (Go board standard)
+                        stones.append((color, closest_grid_pos_indices[0], closest_grid_pos_indices[1]))
+                        
+                        # 绘制检测到的圆形
+                        cv2.circle(final_img, (cx, cy), r, (255, 255, 0), 2) # Cyan boundary
+                        cv2.circle(final_img, (cx, cy), 2, (255, 255, 0), -1) # Cyan center dot
                         
                         # 标注棋子信息
                         text_color = (255, 255, 255) if color == 'black' else (0, 0, 0)
-                        cv2.putText(final_img, f"{color[0].upper()}({closest_grid_pos[0]+1},{closest_grid_pos[1]+1})", 
+                        cv2.putText(final_img, f"{color[0].upper()}({closest_grid_pos_indices[0]+1},{closest_grid_pos_indices[1]+1})", 
                                    (cx-25, cy-r-5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, text_color, 1)
                         
                         # 在对应的网格点上画一个小圆圈表示棋子位置
-                        cv2.circle(final_img, closest_grid_point, 8, (0, 255, 0), 2)
+                        cv2.circle(final_img, closest_grid_point_coords, 8, (0, 255, 0), 2)
             
             print(f"在围棋网格上识别到 {len(stones)} 个棋子")
             
@@ -695,7 +822,6 @@ if len(intersections) > intersection_threshold:
             for color, row, col in stones:
                 if 0 <= row < 19 and 0 <= col < 19:
                     board_state[row][col] = 1 if color == 'black' else 2
-                    #print(f"{color} 棋子在位置: ({row+1}, {col+1})")
             
             print("\n围棋棋盘状态 (0=空, 1=黑子, 2=白子):")
             print("行号:", end="  ")
@@ -716,12 +842,75 @@ if len(intersections) > intersection_threshold:
             
             # 显示最终结果
             cv2.imshow('final_go_board', final_img)
+
+        else:
+            print("未检测到任何圆形棋子。")
+
+    else: # If valid_rows < 18 or other issues with grid construction
+        print("未能构建完整的19x19围棋网格。")
+        cv2.imshow('final_go_board', img) # Show the perspective corrected image without stones if grid is bad
+
+else: # If intersections count is too low
+    print("交点数量不足，无法构建围棋网格。")
+    cv2.imshow('final_go_board', img) # Show the perspective corrected image without stones
+
+# 生成只包含棋盘和棋子的新图像
+# Ensure grid_xy and stones are defined before this block
+if 'grid_xy' in locals() and 'stones' in locals():
+    try:
+        # Create a pure white background new image, same size as perspective_size
+        #board_only_img = np.ones((perspective_size, perspective_size, 3), dtype=np.uint8) * 255 
+        board_only_img = np.ones((perspective_withpadding_size, perspective_withpadding_size, 3), dtype=np.uint8) * 255 
+        
+        # 绘制水平棋盘线
+        for r in range(19):
+            start_point = tuple((grid_xy[r, 0] + padding).astype(int))
+            end_point = tuple((grid_xy[r, 18] + padding).astype(int))
             
-    else:
-        print("未能检测到足够的网格行来构建19x19围棋棋盘")
+            # Check if coordinates are within image bounds
+            if (0 <= start_point[0] < perspective_withpadding_size and 0 <= start_point[1] < perspective_withpadding_size and
+                0 <= end_point[0] < perspective_withpadding_size and 0 <= end_point[1] < perspective_withpadding_size):
+                cv2.line(board_only_img, start_point, end_point, (0, 0, 0), 1)
+
+        # 绘制垂直棋盘线
+        for c in range(19):
+            start_point = tuple((grid_xy[0, c] + padding).astype(int))
+            end_point = tuple((grid_xy[18, c] + padding).astype(int))
+            
+            # Check if coordinates are within image bounds
+            if (0 <= start_point[0] < perspective_withpadding_size and 0 <= start_point[1] < perspective_withpadding_size and
+                0 <= end_point[0] < perspective_withpadding_size and 0 <= end_point[1] < perspective_withpadding_size):
+                cv2.line(board_only_img, start_point, end_point, (0, 0, 0), 1)
+
+        # 绘制检测到的棋子
+        for color, row, col in stones:
+            if 0 <= row < 19 and 0 <= col < 19:
+                center_x, center_y = (grid_xy[row, col] + padding).astype(int)
+                
+                # Check if coordinates are within image bounds
+                if (0 <= center_x < perspective_withpadding_size and 0 <= center_y < perspective_withpadding_size):
+                    # Use a fixed radius to draw stones for visual consistency on the new board
+                    stone_draw_radius = max(2, int(min_radius * 1.9)) 
+                    
+                    # Set drawing color based on stone color
+                    stone_color_bgr = (0, 0, 0) if color == 'black' else (255, 255, 255) 
+                    cv2.circle(board_only_img, (center_x, center_y), stone_draw_radius, stone_color_bgr, -1)
+                    
+                    # Add black border for white stones to make them more visible on white background
+                    if color == 'white':
+                        cv2.circle(board_only_img, (center_x, center_y), stone_draw_radius, (0, 0, 0), 1) 
+        
+        cv2.imshow('NewBoard with Stone', board_only_img)
+        cv2.moveWindow('NewBoard with Stone', 1800, 0) # Moved to 1800 to avoid overlap
+        print("已生成只包含棋盘和棋子的新图像。")
+        
+    except Exception as e:
+        print(f"生成棋盘图像时出错: {e}")
+        print("未能构建完整的19x19围棋网格，无法生成只包含棋盘和棋子的新图像。")
         
 else:
-    print("检测到的交点数量不足，无法构建围棋网格")
+    print("未能检测到足够的网格行来构建19x19围棋棋盘，或 grid_xy/stones 未被正确初始化。")
+
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()

@@ -9,11 +9,13 @@ import math
 # 读取图像
 #img = cv2.imread('../data/raw/bd317d54.webp')
 #img = cv2.imread('../data/raw/IMG20171015161921.jpg')
-#img = cv2.imread('../data/raw/OGS3.jpeg')
+img = cv2.imread('../data/raw/OGS3.jpeg')
 #img = cv2.imread('../data/raw/IMG20160706171004.jpg')
-img = cv2.imread('../data/raw/IMG20161205130156-16.jpg')
+#img = cv2.imread('../data/raw/IMG20161205130156-16.jpg') # 这个图片现在不能检测
 #img = cv2.imread('../data/raw/IMG20160904165505-B.jpg')
 #img = cv2.imread('../data/raw/IMG20160706171004-12.jpg')
+#img = cv2.imread('../data/raw/WechatIMG123.jpg')
+#img = cv2.imread('../data/raw/WechatIMG124.jpg')
 
 
 if img is None:
@@ -83,7 +85,7 @@ if current_width <= 1000:
 elif current_width <= 1500:
     # 中图参数集 (适用于宽度 1000-1500px)
     print("使用中图参数集")
-    perspective_size = 500
+    perspective_size = 510
     perspective_corner = 490
     hough_threshold = 60
     min_line_length = 70
@@ -304,8 +306,8 @@ if rect is None:
     kernel = np.ones((2, 2), np.uint8)
     im_edge_dilated = cv2.dilate(im_edge_original, kernel, iterations=1)
     
-    cv2.imshow('Original + Light Dilate', im_edge_dilated)
-    cv2.moveWindow("Original + Light Dilate", 600, 0)
+    #cv2.imshow('Original + Light Dilate', im_edge_dilated)
+    #cv2.moveWindow("Original + Light Dilate", 600, 0)
     
     # 再次查找轮廓
     contours2, hierarchy2 = cv2.findContours(im_edge_dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -386,7 +388,7 @@ blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
 # 边缘检测
 edges = cv2.Canny(blur, 50, 150)
-cv2.imshow('edges', edges)
+#cv2.imshow('edges', edges)
 
 # 使用霍夫变换检测直线
 lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=hough_threshold, minLineLength=min_line_length, maxLineGap=max_line_gap)
@@ -434,7 +436,7 @@ for line in lines:
 print(f"水平线: {len(horizontal_lines)} 条")
 print(f"垂直线: {len(vertical_lines)} 条")
 
-cv2.imshow('detected_lines', lines_img)
+#cv2.imshow('detected_lines', lines_img)
 
 # 合并相近的平行线
 def merge_lines(lines, is_horizontal=True):
@@ -490,7 +492,7 @@ for line in merged_horizontal:
 for line in merged_vertical:
     cv2.line(merged_img, (line[0], line[1]), (line[2], line[3]), (255, 0, 0), 2)
 
-cv2.imshow('merged_lines', merged_img)
+#cv2.imshow('merged_lines', merged_img)
 
 # 计算交点
 def line_intersection(line1, line2):
@@ -524,7 +526,7 @@ grid_img = img.copy()
 for point in intersections:
     cv2.circle(grid_img, point, 3, (0, 0, 255), -1)
 
-cv2.imshow('grid_points', grid_img)
+#cv2.imshow('grid_points', grid_img)
 
 # 如果交点数量合理，尝试构建19x19的标准围棋网格
 intersection_threshold = max(50, int(100 * param_scale))  # 动态调整交点阈值
@@ -591,11 +593,14 @@ if len(intersections) > intersection_threshold:
                 # 如果这一行点数超过19，选择最均匀分布的19个点
                 if len(row) > 19:
                     # 选择x坐标最均匀分布的19个点
-                    step = len(row) / 19
-                    selected_points = []
-                    for i in range(19):
-                        idx = min(int(i * step), len(row) - 1)
-                        selected_points.append(row[idx])
+                    #step = len(row) / 19
+                    #selected_points = []
+                    #for i in range(19):
+                    #    idx = min(int(i * step), len(row) - 1)
+                    #    selected_points.append(row[idx])
+                    #row_points = selected_points
+                    indices = np.linspace(0, len(row)-1, 19, dtype=int)  # 修订，纠正水平方向判断偏差 7/12
+                    selected_points = [row[i] for i in indices]
                     row_points = selected_points
                 else:
                     row_points = row[:19]
@@ -630,7 +635,7 @@ if len(intersections) > intersection_threshold:
         print(f"构建了 {len(go_grid_points)} 个围棋网格点 (目标: 361)")
         
         # 显示只有围棋网格点的图像
-        cv2.imshow('go_grid_only', grid_img_with_go_points)
+        #cv2.imshow('go_grid_only', grid_img_with_go_points)
         
         # 使用围棋网格点重新定位棋子
         valid_go_grid_points = [(x, y) for x, y, _, _ in go_grid_points]
@@ -716,12 +721,104 @@ if len(intersections) > intersection_threshold:
             
             # 显示最终结果
             cv2.imshow('final_go_board', final_img)
+
+ # 修复后的代码 - 添加了 grid_xy 的定义和错误处理
+
+# 假设 go_grid_points 是检测到的网格交点列表
+# 需要将这些点转换为 19x19 的网格坐标数组
+
+# 新增：输出一个只包含棋盘和棋子的新图像
+if len(go_grid_points) > 0:  # 确保网格点已成功构建
+    # 首先需要构建 grid_xy 数组
+    # 这里假设 go_grid_points 是一个包含所有网格交点的列表
+    # 需要将其组织成 19x19 的数组格式
+    
+    try:
+        # 初始化 grid_xy 数组 (19x19x2) 用于存储每个交点的 (x, y) 坐标
+        grid_xy = np.zeros((19, 19, 2), dtype=np.int32)
+        
+        # 这里需要根据你的具体情况填充 grid_xy
+        # 假设 go_grid_points 是按行列顺序排列的交点
+        if len(go_grid_points) == 19 * 19:  # 确保有足够的点
+            for i, point in enumerate(go_grid_points):
+                row = i // 19
+                col = i % 19
+                grid_xy[row, col] = [int(point[0]), int(point[1])]
+        else:
+            # 如果点数不是361个，需要其他方法来构建网格
+            # 这里提供一个备选方案：基于现有点进行插值
+            print(f"检测到 {len(go_grid_points)} 个网格点，正在尝试构建19x19网格...")
             
-    else:
-        print("未能检测到足够的网格行来构建19x19围棋棋盘")
+            # 将点按位置排序并尝试构建网格
+            points_array = np.array(go_grid_points)
+            
+            # 找到边界
+            min_x, min_y = np.min(points_array, axis=0)
+            max_x, max_y = np.max(points_array, axis=0)
+            
+            # 生成规则网格
+            x_coords = np.linspace(min_x, max_x, 19)
+            y_coords = np.linspace(min_y, max_y, 19)
+            
+            for r in range(19):
+                for c in range(19):
+                    grid_xy[r, c] = [int(x_coords[c]), int(y_coords[r])]
+        
+        # 创建一个纯白背景的新图像，尺寸与透视变换后的图像相同
+        board_only_img = np.ones((perspective_size, perspective_size, 3), dtype=np.uint8) * 255 
+
+        # 绘制水平棋盘线
+        for r in range(19):
+            # 确保线条的起点和终点坐标有效
+            start_point = tuple(grid_xy[r, 0].astype(int))
+            end_point = tuple(grid_xy[r, 18].astype(int))
+            
+            # 检查坐标是否在图像范围内
+            if (0 <= start_point[0] < perspective_size and 0 <= start_point[1] < perspective_size and
+                0 <= end_point[0] < perspective_size and 0 <= end_point[1] < perspective_size):
+                cv2.line(board_only_img, start_point, end_point, (0, 0, 0), 1)
+
+        # 绘制垂直棋盘线
+        for c in range(19):
+            # 确保线条的起点和终点坐标有效
+            start_point = tuple(grid_xy[0, c].astype(int))
+            end_point = tuple(grid_xy[18, c].astype(int))
+            
+            # 检查坐标是否在图像范围内
+            if (0 <= start_point[0] < perspective_size and 0 <= start_point[1] < perspective_size and
+                0 <= end_point[0] < perspective_size and 0 <= end_point[1] < perspective_size):
+                cv2.line(board_only_img, start_point, end_point, (0, 0, 0), 1)
+
+        # 绘制检测到的棋子
+        for color, row, col in stones:
+            if 0 <= row < 19 and 0 <= col < 19:
+                center_x, center_y = grid_xy[row, col].astype(int)
+                
+                # 检查坐标是否在图像范围内
+                if (0 <= center_x < perspective_size and 0 <= center_y < perspective_size):
+                    # 使用一个固定的半径来绘制棋子，以保持在新棋盘上的视觉一致性
+                    # 稍微放大 min_radius 以确保棋子清晰可见
+                    stone_draw_radius = max(2, int(min_radius * 1.9)) 
+                    
+                    # 根据棋子颜色设置绘制颜色
+                    stone_color_bgr = (0, 0, 0) if color == 'black' else (255, 255, 255) # 黑色或白色
+                    cv2.circle(board_only_img, (center_x, center_y), stone_draw_radius, stone_color_bgr, -1)
+                    
+                    # 为白子添加黑色边框，使其在白色背景上更明显
+                    if color == 'white':
+                        cv2.circle(board_only_img, (center_x, center_y), stone_draw_radius, (0, 0, 0), 1) # 黑色边框
+        
+        # 显示只包含棋盘和棋子的新图像
+        cv2.imshow('NewBoard with Stone', board_only_img)
+        cv2.moveWindow('NewBoard with Stone', 1500, 0)  # 移动窗口位置，避免与其他窗口重叠
+        print("已生成只包含棋盘和棋子的新图像。")
+        
+    except Exception as e:
+        print(f"生成棋盘图像时出错: {e}")
+        print("未能构建完整的19x19围棋网格，无法生成只包含棋盘和棋子的新图像。")
         
 else:
-    print("检测到的交点数量不足，无法构建围棋网格")
+    print("未能检测到足够的网格行来构建19x19围棋棋盘")
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
