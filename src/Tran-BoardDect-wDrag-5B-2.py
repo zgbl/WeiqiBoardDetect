@@ -4,6 +4,199 @@ import numpy as np
 from collections import defaultdict
 import math
 
+class InteractiveCornerAdjuster:
+    def __init__(self, image, initial_corners):
+        """
+        初始化交互式角点调整器
+        
+        Args:
+            image: 原始图像
+            initial_corners: 初始角点 (lt, lb, rt, rb)
+        """
+        self.original_image = image.copy()
+        self.display_image = image.copy()
+        self.corners = list(initial_corners)  # [lt, lb, rt, rb]
+        self.corner_labels = ['左上', '左下', '右上', '右下']
+        self.corner_colors = [(0, 255, 0), (0, 255, 255), (255, 0, 0), (255, 0, 255)]
+        
+        # 交互参数
+        self.dragging = False
+        self.selected_corner = -1
+        self.corner_radius = 15
+        self.hover_radius = 20
+        self.confirmed = False
+        
+        # 窗口名称
+        self.window_name = "角点调整 - 拖动角点后按空格确认，ESC取消"
+        
+        # 创建窗口和设置鼠标回调
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.setMouseCallback(self.window_name, self.mouse_callback)
+        
+        self.update_display()
+    
+    def mouse_callback(self, event, x, y, flags, param):
+        """鼠标回调函数"""
+        if event == cv2.EVENT_LBUTTONDOWN:
+            # 检查是否点击了某个角点
+            for i, corner in enumerate(self.corners):
+                dist = math.sqrt((x - corner[0])**2 + (y - corner[1])**2)
+                if dist < self.corner_radius:
+                    self.dragging = True
+                    self.selected_corner = i
+                    break
+        
+        elif event == cv2.EVENT_MOUSEMOVE:
+            if self.dragging and self.selected_corner != -1:
+                # 拖动角点
+                self.corners[self.selected_corner] = [x, y]
+                self.update_display()
+        
+        elif event == cv2.EVENT_LBUTTONUP:
+            self.dragging = False
+            self.selected_corner = -1
+    
+    def update_display(self):
+        """更新显示图像"""
+        self.display_image = self.original_image.copy()
+        
+        # 绘制四边形边界
+        if len(self.corners) == 4:
+            # 连接角点形成四边形
+            pts = np.array([self.corners[0], self.corners[2], self.corners[3], self.corners[1]], np.int32)
+            pts = pts.reshape((-1, 1, 2))
+            cv2.polylines(self.display_image, [pts], True, (0, 0, 255), 2)
+        
+        # 绘制角点
+        for i, (corner, label, color) in enumerate(zip(self.corners, self.corner_labels, self.corner_colors)):
+            # 绘制角点圆圈
+            cv2.circle(self.display_image, tuple(corner), self.corner_radius, color, -1)
+            cv2.circle(self.display_image, tuple(corner), self.corner_radius, (0, 0, 0), 2)
+            
+            # 绘制标签
+            cv2.putText(self.display_image, label, 
+                       (corner[0] - 20, corner[1] - 25), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            
+            # 绘制坐标
+            cv2.putText(self.display_image, f"({corner[0]},{corner[1]})", 
+                       (corner[0] - 30, corner[1] + 40), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+        
+        # 绘制操作提示
+        cv2.putText(self.display_image, "拖动角点调整位置", 
+                   (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        cv2.putText(self.display_image, "空格键确认 | ESC取消", 
+                   (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+        
+        cv2.imshow(self.window_name, self.display_image)
+    
+    def validate_corners(self):
+        """验证角点是否合理"""
+        if len(self.corners) != 4:
+            return False, "角点数量不正确"
+        
+        # 检查角点是否在图像范围内
+        height, width = self.original_image.shape[:2]
+        for i, corner in enumerate(self.corners):
+            if corner[0] < 0 or corner[0] >= width or corner[1] < 0 or corner[1] >= height:
+                return False, f"角点 {self.corner_labels[i]} 超出图像范围"
+        
+        # 检查四边形是否合理（简单检查面积）
+        pts = np.array([self.corners[0], self.corners[2], self.corners[3], self.corners[1]], np.int32)
+        area = cv2.contourArea(pts)
+        img_area = width * height
+        
+        if area < img_area * 0.01:
+            return False, "选择区域太小"
+        
+        if area > img_area * 0.95:
+            return False, "选择区域太大"
+        
+        return True, "角点验证通过"
+    
+    def run(self):
+        """运行交互式调整"""
+        print("开始交互式角点调整...")
+        print("操作说明：")
+        print("- 用鼠标拖动角点进行调整")
+        print("- 按空格键确认调整结果")
+        print("- 按ESC键取消调整")
+        
+        while True:
+            key = cv2.waitKey(1) & 0xFF
+            
+            if key == 32:  # 空格键确认
+                is_valid, message = self.validate_corners()
+                if is_valid:
+                    print(f"角点调整完成: {message}")
+                    self.confirmed = True
+                    break
+                else:
+                    print(f"角点验证失败: {message}")
+                    # 可以选择继续调整或者退出
+                    continue
+            
+            elif key == 27:  # ESC键取消
+                print("取消角点调整")
+                self.confirmed = False
+                break
+        
+        cv2.destroyWindow(self.window_name)
+        return self.confirmed, tuple(self.corners)
+
+def interactive_corner_adjustment(image, initial_corners):
+    """
+    交互式角点调整的主函数
+    
+    Args:
+        image: 原始图像
+        initial_corners: 初始角点 (lt, lb, rt, rb)
+    
+    Returns:
+        confirmed: 是否确认调整
+        final_corners: 最终角点坐标
+    """
+    adjuster = InteractiveCornerAdjuster(image, initial_corners)
+    return adjuster.run()
+
+# 使用示例：将此功能集成到你的主代码中
+def integrate_interactive_adjustment():
+    """
+    展示如何将交互式调整集成到现有代码中
+    """
+    # 这是你现有代码中找到角点后的部分
+    # 假设你已经有了 img 和 rect
+    
+    # 原有代码...
+    # rect = find_board_contour_improved(contours, img.shape)
+    
+    # 如果找到了角点，进行交互式调整
+    if rect is not None:
+        print('自动检测到的棋盘角点：')
+        print(f'\t左上角:({rect[0][0]},{rect[0][1]})')
+        print(f'\t左下角:({rect[1][0]},{rect[1][1]})')
+        print(f'\t右上角:({rect[2][0]},{rect[2][1]})')
+        print(f'\t右下角:({rect[3][0]},{rect[3][1]})')
+        
+        # 启动交互式调整
+        confirmed, adjusted_corners = interactive_corner_adjustment(img, rect)
+        
+        if confirmed:
+            print("用户确认了调整后的角点")
+            rect = adjusted_corners  # 使用调整后的角点
+            print('最终角点：')
+            print(f'\t左上角:({rect[0][0]},{rect[0][1]})')
+            print(f'\t左下角:({rect[1][0]},{rect[1][1]})')
+            print(f'\t右上角:({rect[2][0]},{rect[2][1]})')
+            print(f'\t右下角:({rect[3][0]},{rect[3][1]})')
+        else:
+            print("用户取消了调整，使用原始检测结果")
+        
+        # 继续后续的透视变换等处理...
+    else:
+        print('未能找到棋盘角点')
+
 # 读取图像
 #img = cv2.imread('../data/raw/bd317d54.webp')
 #img = cv2.imread('../data/raw/IMG20171015161921.jpg')
@@ -374,8 +567,28 @@ else:
 
     # Display found corners
     corner_img = img.copy()  # 注意这里 img 还是原始尺寸的图像
-    for p in rect:
+    for i, p in enumerate(rect):
         cv2.circle(corner_img,(p[0],p[1]),15,(0,255,0),-1)
+    cv2.imshow('Auto Detected Corners', corner_img)
+    cv2.moveWindow("Auto Detected Corners", 100, 100)
+    #for p in rect:
+    #    cv2.circle(corner_img,(p[0],p[1]),15,(0,255,0),-1)
+
+    # === 添加交互式调整 ===
+    print("开始交互式角点调整...")
+    confirmed, adjusted_corners = interactive_corner_adjustment(img, rect)
+
+    if confirmed:
+        rect = adjusted_corners
+        print("使用调整后的角点")
+        print('最终角点：')
+        print(f'\t左上角:({rect[0][0]},{rect[0][1]})')
+        print(f'\t左下角:({rect[1][0]},{rect[1][1]})')
+        print(f'\t右上角:({rect[2][0]},{rect[2][1]})')
+        print(f'\t右下角:({rect[3][0]},{rect[3][1]})')
+    else:
+        print("使用原始检测的角点")
+
     cv2.imshow('Found Corners', corner_img)
     cv2.moveWindow("Found Corners", 900, 0)
 

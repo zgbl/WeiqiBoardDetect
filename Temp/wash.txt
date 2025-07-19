@@ -1,6 +1,44 @@
-Cloud Architecture: AWS (EC2, VPC, S3, RDS, Lambda), Azure (VM, VNet, Cosmos DB, App Services), Hybrid Cloud
-DevOps & IaC: Terraform, Kubernetes (AKS/EKS), Docker, GitHub Actions, CI/CD, Helm, Ansible, Jenkins
-Programming & Scripting: Python, PowerShell, Bash, C#, Go (basic), YAML, JSON, RESTful APIs
-Data & AI Integrations: Azure Synapse, Data Factory, Databricks, Cognitive Services, ML Pipelines
-Blockchain Exposure: Ethereum, Solidity (learning), Smart Contract Concepts, Decentralized Systems Research
-Leadership: Cross-functional Team Management, Technical Strategy, Engineering Hiring, Stakeholder Communication
+
+Melinda Long SR. AVP Talent Acquisition   3:03 PM
+Apologies, i just sent an email of the role we were discussing. I will take a look at this new one you sent over.
+
+Xinyu Tu sent the following message at 3:29 PM
+View Xinyu’s profileXinyu Tu, #OPEN_TO_WORK
+Xinyu Tu  (He/Him)  3:29 PM
+Melinda,
+Thanks for reply. I just check my email. I still didn't get the email(Spam folder checked). Could you please check if you were sending to: carson_tu@yahoo.com ?
+Thanks.
+Xinyu Tu
+
+Melinda Long SR. AVP Talent Acquisition sent the following messages at 3:37 PM
+View Melinda’s profileMelinda Long                    SR. AVP Talent Acquisition
+Melinda Long SR. AVP Talent Acquisition   3:37 PM
+
+yeah that is the email address, maybe just give it a little while longer. Unfortunately LinkedIn has character constraints
+
+
+
+
+Melinda Long SR. AVP Talent Acquisition   2:45 PM
+
+Wells Fargo HOT JOB Enterprise Architect Job Opening!
+Hi Xinyu,
+
+Hope you're doing well! I came across your profile and was impressed by your extensive experience in IT infrastructure and cloud architecture at Blackrice Tech. With over 20 years in the field, your skills in DevOps really stand out.
+
+Wells Fargo is currently looking for candidates for the following role: 
+
+Enterprise Architect, CHARLOTTE, North Carolina / ISELIN, New Jersey / NEW YORK, New York / SAN FRANCISCO, California | Wells Fargo
+
+**PERM/FTE position, NOT approved for visa sponsorship**
+
+I noticed you are open to opportunities, and I believe this position aligns with what you might be looking for. If you're interested, I would love to chat more about it. Let me know if you’d like to discuss this further via email or a quick call.
+
+Best regards,
+Melinda (Mindy) Long
+
+Mindy Sherwood-Long
+Sr. Recruiter- Talent Acquisition
+Melinda.Long@WellsFargo.com
+https://www.wellsfargo.com/careers/
+www.wellsfargojobs.com/military
