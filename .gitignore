@@ -1,0 +1,87 @@
+# ============================================================
+# WeiqiBoardDetect — .gitignore
+# ============================================================
+
+# ── 训练数据（体积极大，不入版本库）─────────────────────────
+# 明确列出所有可能的命名方式
+training/patches/
+training/patches-*/
+training/patches_*/
+training/patches*/
+patches/
+patches-*/
+patches_*/
+patches*/
+# 任意子目录下的 patches 文件夹（双星号通配）
+**/patches/
+**/patches-*/
+**/patches_*/
+
+# ── 模型权重（几百MB，用 releases 或单独管理）───────────────
+training/checkpoints/*.pt
+training/checkpoints/*.pth
+training/checkpoints/*.onnx
+checkpoints/
+*.pt
+*.pth
+*.onnx
+
+# ── 训练日志（自动生成，可选：如果想保留日志就注释掉这几行）──
+training/log/*.log
+log/*.log
+# 保留 log 目录本身（需要这个文件：）
+!training/log/.gitkeep
+
+# ── 调试输出 ─────────────────────────────────────────────────
+training/debug/
+debug/
+
+# ── Python 缓存 ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── 虚拟环境 ─────────────────────────────────────────────────
+venv/
+env/
+.venv/
+.env/
+*.egg-info/
+dist/
+build/
+
+# ── Jupyter ──────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── macOS ────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Windows ──────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── 图像输出（大批量生成的合成数据）────────────────────────────
+data_gen/output/
+data_gen/outputs/
+data/processed/
+data/synthetic/
+
+# ── 临时文件 ─────────────────────────────────────────────────
+*.tmp
+*.temp
+tmp/
+temp/

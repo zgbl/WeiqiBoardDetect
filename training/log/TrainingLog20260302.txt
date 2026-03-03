@@ -1,0 +1,198 @@
+  Train  18/60: 100%|██████████████████████████████| 6237/6237 [11:44<00:00,  8.85batch/s]
+    [ 18/60] Train 0.7209/0.2896  Val 0.4544/0.6890  LR=7.94e-04  744s  ETA=378m53s       
+  Train  19/60: 100%|██████████████████████████████| 6237/6237 [06:42<00:00, 15.49batch/s]
+  ★ [ 19/60] Train 0.7268/0.2815  Val 0.4902/0.6297  LR=7.72e-04  443s  ETA=366m19s       
+  ★ 新最优: val_acc=0.4902 → 保存到 best_model.pt
+  Train  20/60: 100%|██████████████████████████████| 6237/6237 [06:17<00:00, 16.53batch/s]
+    [ 20/60] Train 0.7305/0.2742  Val 0.4862/0.6355  LR=7.50e-04  413s  ETA=353m17s       
+  Train  21/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.15batch/s]
+    [ 21/60] Train 0.7350/0.2675  Val 0.4884/0.6325  LR=7.27e-04  397s  ETA=340m21s       
+  Train  22/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.14batch/s]
+  ★ [ 22/60] Train 0.7356/0.2661  Val 0.4972/0.6208  LR=7.03e-04  404s  ETA=328m11s       
+  ★ 新最优: val_acc=0.4972 → 保存到 best_model.pt
+  Train  23/60: 100%|██████████████████████████████| 6237/6237 [06:04<00:00, 17.12batch/s]
+  ★ [ 23/60] Train 0.7434/0.2560  Val 0.5129/0.6270  LR=6.79e-04  401s  ETA=316m24s       
+  ★ 新最优: val_acc=0.5129 → 保存到 best_model.pt
+  Train  24/60: 100%|██████████████████████████████| 6237/6237 [06:05<00:00, 17.07batch/s]
+    [ 24/60] Train 0.7455/0.2521  Val 0.4943/0.6252  LR=6.55e-04  401s  ETA=305m02s       
+  Train  25/60: 100%|██████████████████████████████| 6237/6237 [06:04<00:00, 17.09batch/s]
+    [ 25/60] Train 0.7476/0.2467  Val 0.4898/0.6203  LR=6.29e-04  400s  ETA=294m02s       
+  Train  26/60: 100%|██████████████████████████████| 6237/6237 [06:04<00:00, 17.13batch/s]
+    [ 26/60] Train 0.7509/0.2431  Val 0.4975/0.6038  LR=6.04e-04  399s  ETA=283m20s       
+  Train  27/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.14batch/s]
+  ★ [ 27/60] Train 0.7544/0.2379  Val 0.5146/0.5964  LR=5.78e-04  398s  ETA=272m56s       
+  ★ 新最优: val_acc=0.5146 → 保存到 best_model.pt
+  Train  28/60: 100%|██████████████████████████████| 6237/6237 [06:10<00:00, 16.85batch/s]
+    [ 28/60] Train 0.7605/0.2317  Val 0.5131/0.5946  LR=5.52e-04  408s  ETA=262m59s       
+  Train  29/60: 100%|██████████████████████████████| 6237/6237 [06:05<00:00, 17.06batch/s]
+    [ 29/60] Train 0.7609/0.2252  Val 0.5136/0.6000  LR=5.26e-04  400s  ETA=253m07s       
+  Train  30/60: 100%|██████████████████████████████| 6237/6237 [06:04<00:00, 17.13batch/s]
+  ★ [ 30/60] Train 0.7643/0.2225  Val 0.5203/0.5905  LR=5.00e-04  399s  ETA=243m26s       
+  ★ 新最优: val_acc=0.5203 → 保存到 best_model.pt
+  Train  31/60: 100%|██████████████████████████████| 6237/6237 [06:05<00:00, 17.06batch/s]
+    [ 31/60] Train 0.7676/0.2188  Val 0.5069/0.5979  LR=4.74e-04  400s  ETA=233m58s       
+  Train  32/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.15batch/s]
+  ★ [ 32/60] Train 0.7700/0.2141  Val 0.5389/0.5623  LR=4.48e-04  399s  ETA=224m39s       
+  ★ 新最优: val_acc=0.5389 → 保存到 best_model.pt
+  Train  33/60: 100%|██████████████████████████████| 6237/6237 [06:11<00:00, 16.78batch/s]
+    [ 33/60] Train 0.7697/0.2132  Val 0.5299/0.5689  LR=4.22e-04  408s  ETA=215m37s       
+  Train  34/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.15batch/s]
+    [ 34/60] Train 0.7718/0.2093  Val 0.5374/0.5620  LR=3.96e-04  398s  ETA=206m36s       
+  Train  35/60: 100%|██████████████████████████████| 6237/6237 [06:07<00:00, 16.97batch/s]
+    [ 35/60] Train 0.7759/0.2049  Val 0.5175/0.5726  LR=3.71e-04  402s  ETA=197m46s       
+  Train  36/60: 100%|██████████████████████████████| 6237/6237 [06:01<00:00, 17.24batch/s]
+  ★ [ 36/60] Train 0.7797/0.2019  Val 0.5391/0.5610  LR=3.45e-04  397s  ETA=189m00s       
+  ★ 新最优: val_acc=0.5391 → 保存到 best_model.pt
+  Train  37/60: 100%|██████████████████████████████| 6237/6237 [06:13<00:00, 16.72batch/s]
+    [ 37/60] Train 0.7777/0.2012  Val 0.5303/0.5568  LR=3.21e-04  410s  ETA=180m28s       
+  Train  38/60: 100%|██████████████████████████████| 6237/6237 [06:09<00:00, 16.88batch/s]
+  ★ [ 38/60] Train 0.7809/0.1975  Val 0.5553/0.5353  LR=2.97e-04  404s  ETA=171m59s       
+  ★ 新最优: val_acc=0.5553 → 保存到 best_model.pt
+  Train  39/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.15batch/s]
+    [ 39/60] Train 0.7816/0.1959  Val 0.5538/0.5450  LR=2.73e-04  398s  ETA=163m32s       
+  Train  40/60: 100%|██████████████████████████████| 6237/6237 [05:59<00:00, 17.36batch/s]
+    [ 40/60] Train 0.7834/0.1932  Val 0.5446/0.5364  LR=2.50e-04  393s  ETA=155m08s       
+  Train  41/60: 100%|██████████████████████████████| 6237/6237 [05:59<00:00, 17.34batch/s]
+  ★ [ 41/60] Train 0.7865/0.1904  Val 0.5596/0.5262  LR=2.28e-04  395s  ETA=146m49s       
+  ★ 新最优: val_acc=0.5596 → 保存到 best_model.pt
+  Train  42/60: 100%|██████████████████████████████| 6237/6237 [06:05<00:00, 17.07batch/s]
+    [ 42/60] Train 0.7867/0.1876  Val 0.5538/0.5444  LR=2.06e-04  400s  ETA=138m38s       
+  Train  43/60: 100%|██████████████████████████████| 6237/6237 [05:56<00:00, 17.47batch/s]
+  ★ [ 43/60] Train 0.7884/0.1867  Val 0.5713/0.5183  LR=1.85e-04  391s  ETA=130m28s       
+  ★ 新最优: val_acc=0.5713 → 保存到 best_model.pt
+  Train  44/60: 100%|██████████████████████████████| 6237/6237 [06:00<00:00, 17.28batch/s]
+    [ 44/60] Train 0.7899/0.1843  Val 0.5670/0.5253  LR=1.65e-04  395s  ETA=122m24s       
+  Train  45/60: 100%|██████████████████████████████| 6237/6237 [05:57<00:00, 17.44batch/s]
+    [ 45/60] Train 0.7898/0.1842  Val 0.5605/0.5359  LR=1.46e-04  391s  ETA=114m22s       
+  Train  46/60: 100%|██████████████████████████████| 6237/6237 [06:06<00:00, 17.02batch/s]
+    [ 46/60] Train 0.7911/0.1827  Val 0.5541/0.5381  LR=1.28e-04  403s  ETA=106m28s       
+  Train  47/60: 100%|██████████████████████████████| 6237/6237 [05:58<00:00, 17.41batch/s]
+  ★ [ 47/60] Train 0.7926/0.1805  Val 0.5714/0.5238  LR=1.11e-04  393s  ETA=98m34s        
+  ★ 新最优: val_acc=0.5714 → 保存到 best_model.pt
+  Train  48/60: 100%|██████████████████████████████| 6237/6237 [05:59<00:00, 17.34batch/s]
+    [ 48/60] Train 0.7940/0.1785  Val 0.5610/0.5413  LR=9.55e-05  394s  ETA=90m44s        
+  Train  49/60: 100%|██████████████████████████████| 6237/6237 [06:00<00:00, 17.28batch/s]
+    [ 49/60] Train 0.7959/0.1766  Val 0.5680/0.5173  LR=8.07e-05  395s  ETA=82m57s        
+  Train  50/60: 100%|██████████████████████████████| 6237/6237 [05:59<00:00, 17.37batch/s]
+    [ 50/60] Train 0.7953/0.1776  Val 0.5674/0.5261  LR=6.70e-05  393s  ETA=75m13s        
+  Train  51/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.15batch/s]
+  ★ [ 51/60] Train 0.7951/0.1763  Val 0.5739/0.5167  LR=5.45e-05  398s  ETA=67m32s        
+  ★ 新最优: val_acc=0.5739 → 保存到 best_model.pt
+  Train  52/60: 100%|██████████████████████████████| 6237/6237 [06:03<00:00, 17.16batch/s]
+    [ 52/60] Train 0.7991/0.1746  Val 0.5593/0.5362  LR=4.32e-05  397s  ETA=59m54s        
+  Train  53/60: 100%|██████████████████████████████| 6237/6237 [05:58<00:00, 17.40batch/s]
+  ★ [ 53/60] Train 0.7978/0.1742  Val 0.5751/0.5138  LR=3.32e-05  393s  ETA=52m17s        
+  ★ 新最优: val_acc=0.5751 → 保存到 best_model.pt
+  Train  54/60: 100%|██████████████████████████████| 6237/6237 [05:58<00:00, 17.39batch/s]
+  ★ [ 54/60] Train 0.7979/0.1737  Val 0.5770/0.5164  LR=2.45e-05  392s  ETA=44m43s        
+  ★ 新最优: val_acc=0.5770 → 保存到 best_model.pt
+  Train  55/60: 100%|██████████████████████████████| 6237/6237 [06:01<00:00, 17.26batch/s]
+    [ 55/60] Train 0.7988/0.1701  Val 0.5674/0.5192  LR=1.70e-05  396s  ETA=37m11s        
+  Train  56/60: 100%|██████████████████████████████| 6237/6237 [06:01<00:00, 17.26batch/s]
+  ★ [ 56/60] Train 0.7985/0.1726  Val 0.5795/0.5038  LR=1.09e-05  395s  ETA=29m41s        
+  ★ 新最优: val_acc=0.5795 → 保存到 best_model.pt
+  Train  57/60: 100%|██████████████████████████████| 6237/6237 [06:01<00:00, 17.26batch/s]
+    [ 57/60] Train 0.8001/0.1723  Val 0.5737/0.5242  LR=6.16e-06  397s  ETA=22m13s        
+  Train  58/60: 100%|██████████████████████████████| 6237/6237 [06:00<00:00, 17.32batch/s]
+  ★ [ 58/60] Train 0.7995/0.1703  Val 0.5832/0.5083  LR=2.74e-06  394s  ETA=14m47s        
+  ★ 新最优: val_acc=0.5832 → 保存到 best_model.pt
+  Train  59/60: 100%|██████████████████████████████| 6237/6237 [05:58<00:00, 17.38batch/s]
+    [ 59/60] Train 0.7984/0.1736  Val 0.5777/0.5114  LR=6.85e-07  393s  ETA=7m22s         
+  Train  60/60: 100%|██████████████████████████████| 6237/6237 [06:06<00:00, 17.01batch/s]
+    [ 60/60] Train 0.8000/0.1702  Val 0.5789/0.5125  LR=0.00e+00  401s  ETA=--            
+
+[完成] 训练耗时 442.1 分钟
+  最优验证集准确率: 0.5832 (58.32%)
+
+[评估] 加载最优模型，在测试集上评估...
+  测试集准确率: 0.5830 (58.30%)                                                           
+  [保存] 训练曲线 → /Users/tuxy/Codes/AI/WeiqiBoardDetect/training/checkpoints/training_curve.png
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 40657 (\N{CJK UNIFIED IDEOGRAPH-9ED1}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 30333 (\N{CJK UNIFIED IDEOGRAPH-767D}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 31354 (\N{CJK UNIFIED IDEOGRAPH-7A7A}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 39044 (\N{CJK UNIFIED IDEOGRAPH-9884}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 27979 (\N{CJK UNIFIED IDEOGRAPH-6D4B}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 30495 (\N{CJK UNIFIED IDEOGRAPH-771F}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 23454 (\N{CJK UNIFIED IDEOGRAPH-5B9E}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 28151 (\N{CJK UNIFIED IDEOGRAPH-6DF7}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 28102 (\N{CJK UNIFIED IDEOGRAPH-6DC6}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 30697 (\N{CJK UNIFIED IDEOGRAPH-77E9}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 38453 (\N{CJK UNIFIED IDEOGRAPH-9635}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 35797 (\N{CJK UNIFIED IDEOGRAPH-8BD5}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 38598 (\N{CJK UNIFIED IDEOGRAPH-96C6}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:303: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from font(s) DejaVu Sans.
+  plt.tight_layout()
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 40657 (\N{CJK UNIFIED IDEOGRAPH-9ED1}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 30333 (\N{CJK UNIFIED IDEOGRAPH-767D}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 31354 (\N{CJK UNIFIED IDEOGRAPH-7A7A}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 30495 (\N{CJK UNIFIED IDEOGRAPH-771F}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 23454 (\N{CJK UNIFIED IDEOGRAPH-5B9E}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 28151 (\N{CJK UNIFIED IDEOGRAPH-6DF7}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 28102 (\N{CJK UNIFIED IDEOGRAPH-6DC6}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 30697 (\N{CJK UNIFIED IDEOGRAPH-77E9}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 38453 (\N{CJK UNIFIED IDEOGRAPH-9635}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 65288 (\N{FULLWIDTH LEFT PARENTHESIS}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 27979 (\N{CJK UNIFIED IDEOGRAPH-6D4B}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 35797 (\N{CJK UNIFIED IDEOGRAPH-8BD5}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 38598 (\N{CJK UNIFIED IDEOGRAPH-96C6}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 65289 (\N{FULLWIDTH RIGHT PARENTHESIS}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/train.py:304: UserWarning: Glyph 39044 (\N{CJK UNIFIED IDEOGRAPH-9884}) missing from font(s) DejaVu Sans.
+  plt.savefig(Path(output_dir) / "confusion_matrix.png", dpi=150)
+  [保存] 混淆矩阵 → /Users/tuxy/Codes/AI/WeiqiBoardDetect/training/checkpoints/confusion_matrix.png
+
+  分类报告:
+              precision    recall  f1-score   support
+
+           B       0.26      0.94      0.41       810
+           W       0.22      0.99      0.36       873
+           E       1.00      0.52      0.69     10789
+
+    accuracy                           0.58     12472
+   macro avg       0.49      0.82      0.49     12472
+weighted avg       0.90      0.58      0.65     12472
+
+
+[导出] 正在导出 ONNX 模型（用于移动端部署）...
+  ⚠ ONNX 导出失败: Module onnx is not installed!
+
+╔══════════════════════════════════════════╗
+║  训练完成！输出文件        ║
+╚══════════════════════════════════════════╝
+  /Users/tuxy/Codes/AI/WeiqiBoardDetect/training/checkpoints/
+    best_model.pt          ← 最优模型权重（PyTorch）
+    latest_model.pt        ← 最新 checkpoint（续训用）
+    stone_classifier.onnx  ← ONNX 模型（移动端部署用）
+    training_curve.png     ← 训练曲线图
+    confusion_matrix.png   ← 混淆矩阵（测试集）
+    classification_report.txt ← 每类精确率/召回率
+    training_summary.json  ← 训练结果摘要
+(labelimg-env) tuxy@iMac training % 

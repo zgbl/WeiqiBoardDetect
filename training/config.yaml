@@ -1,0 +1,74 @@
+# ============================================================
+# WeiqiBoardDetect — 训练配置文件
+# ============================================================
+# 路径全部在这里配置，脚本不硬编码任何路径。
+# Windows 用户：把路径换成 Windows 风格即可，例如：
+#   C:/Users/xxx/Data/Gomrade-dataset1
+# 注意：使用正斜杠 / 或双反斜杠 \\ 均可。
+
+# ── 数据源路径 ─────────────────────────────────────────────
+data:
+  # Gomrade 数据集根目录（主要训练数据）
+  gomrade_dir: "/Users/tuxy/Codes/AI/Data/Gomrade-dataset1"
+
+  # 合成数据目录（可选，留空则不使用）
+  # 运行 OpenCVTest1/data_gen/generate.py 生成后填入
+  synthetic_dir: ""
+
+  # patch 提取输出目录（提取后存放在这里）
+  patches_dir: "/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/patches"
+
+  # 训练/验证/测试 比例
+  val_ratio:   0.15
+  test_ratio:  0.05
+
+# ── 模型配置 ────────────────────────────────────────────────
+model:
+  # 选项: "StoneCNN" | "MobileNetV3"
+  arch: "StoneCNN"
+
+  # patch 输入尺寸（正方形边长，像素）
+  patch_size: 48
+
+  # 类别数（B=黑子, W=白子, E=空）
+  num_classes: 3
+
+  # 保存最优模型的路径
+  output_dir: "/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/checkpoints"
+
+# ── 训练超参数 ──────────────────────────────────────────────
+train:
+  epochs:      100          # 更多轮次让模型充分收敛
+  batch_size:  32           # 小 batch 先迭代，参数稳定后再加
+  lr:          0.001
+  weight_decay: 0.0001
+  num_workers: 2            # Windows 建议改为 0
+  amp:         true         # 仅 CUDA 生效，MPS/CPU 自动忽略
+
+  # 采样策略（重要！解决 E 类过多导致误报的问题）
+  # "equal"  = B:W:E强制1:1:1（误报多，不推荐）
+  # "sqrt"   = 平方根加权，接近真实棋盘分布（推荐）
+  # "none"   = 原始分布
+  sampling_strategy: "sqrt"
+
+  # 子集训练比例：1.0=全量，0.2=只用20%快速测参数
+  subset_ratio: 1.0
+
+# ── 数据增强 ────────────────────────────────────────────────
+augment:
+  random_flip:       true
+  random_rotation:   15       # 最大旋转角度（度）
+  color_jitter:
+    brightness: 0.4
+    contrast:   0.4
+    saturation: 0.2
+    hue:        0.05
+  gaussian_blur:     true
+  gaussian_noise:    true
+
+# ── 日志与输出 ──────────────────────────────────────────────
+logging:
+  # 日志文件目录（每次训练自动生成带时间戳的 .log 文件）
+  log_dir: "/Users/tuxy/Codes/AI/WeiqiBoardDetect/training/log"
+  # 保存混淆矩阵图
+  save_confusion_matrix: true
