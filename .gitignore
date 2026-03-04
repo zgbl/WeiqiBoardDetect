@@ -18,6 +18,7 @@ patches*/
 **/patches_*/
 
 # ── 模型权重（几百MB，用 releases 或单独管理）───────────────
+training/checkpoints*/
 training/checkpoints/*.pt
 training/checkpoints/*.pth
 training/checkpoints/*.onnx

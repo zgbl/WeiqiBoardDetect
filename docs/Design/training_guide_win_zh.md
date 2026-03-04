@@ -31,15 +31,17 @@ training/
 - **CUDA Toolkit**: 13.1
 
 ### 2. 安装 CUDA 版 PyTorch (非破坏性)
-目前系统中安装的 PyTorch 是 CPU 版本 (2.6.0+cpu)。为了利用 GPU，你需要**重新安装支持 CUDA 的 PyTorch**。
+目前系统中安装的默认 Python 是 3.14，但 **PyTorch 目前不支持 Python 3.14**。
+我检测到你系统中已安装了 **Python 3.12**，请务必使用 3.12 来运行本项目。
+
+运行以下命令，专门为你的 Python 3.12 环境安装 CUDA 加速版：
+```powershell
+& "C:\Users\carso\AppData\Local\Python\pythoncore-3.12-64\python.exe" -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 --force-reinstall
+```
 
 > [!IMPORTANT]
-> 虽然你安装了 CUDA 13.1，但 PyTorch 官方目前提供的最稳定版本是针对 CUDA 12.1 或 12.4 的。由于 CUDA 向后兼容，这对你的 13.1 环境是**安全且不会破坏现有驱动/CUDA**的。
-
-运行以下命令安装 CUDA 12.4 兼容版（这是目前最适合你系统的版本）：
-```powershell
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124 --force-reinstall
-```
+> 安装完成后，之后启动训练也请指定使用 3.12：
+> `& "C:\Users\carso\AppData\Local\Python\pythoncore-3.12-64\python.exe" train-win.py --config config_windows.yaml`
 
 ### 3. 安装其他依赖
 ```powershell

@@ -17,7 +17,7 @@ data:
 
 # ── 模型配置 ────────────────────────────────────────────────
 model:
-  arch:        "StoneCNN"   # 或 "MobileNetV3"
+  arch:        "MobileNetV3"   # 升级到更强的工业级模型
   patch_size:  48
   num_classes: 3
 
@@ -30,18 +30,18 @@ train:
   batch_size:  64            # GTX 1080 8GB 显存建议尝试 64，速度更快
   lr:          0.001
   weight_decay: 0.0001
-  num_workers: 0             # Windows 建议先用 0（避免多进程 pickling 问题）
+  num_workers: 4             # 已增加到 4，利用 32GB 内存进行数据预读，缓解 HDD 瓶颈
   amp:         true          # CUDA 混合精度，GTX1080 支持，自动加速
 
   # 采样策略（解决 E 类太多的问题）
   # "equal"  = B:W:E = 1:1:1（之前的方式，导致过多误报）
   # "sqrt"   = 平方根加权，更接近真实分布，推荐
   # "none"   = 原始分布（86% 空格），模型只会预测空格
-  sampling_strategy: "sqrt"
+  sampling_strategy: "sqrt"      # 回归更平衡的策略，避免过激误报
 
   # 子集训练（快速迭代验证参数有效性）
   # 1.0 = 全量数据；0.2 = 只用 20% 数据，速度提升 5x
-  subset_ratio: 0.1          # [快速迭代] 0.1 = 10% 数据，几分钟就能跑完一轮
+  subset_ratio: 1.0          # [全量训练] 使用 100% 数据，冲击 95% 以上准确率
 
 # ── 日志 ────────────────────────────────────────────────────
 logging:
