@@ -7,10 +7,10 @@
 # ── 数据源路径 ─────────────────────────────────────────────
 data:
   # Gomrade 数据集根目录
-  gomrade_dir: "TODO: C:/Users/yourname/Data/Gomrade-dataset1"
+  gomrade_dir: "D:/Codes/Data/Gomrade/dataset1"
 
   # patch 目录（从 Mac 复制过来的 patches/ 文件夹）
-  patches_dir: "TODO: C:/Users/yourname/WeiqiBoardDetect/training/patches"
+  patches_dir: "D:/Codes/Data/Gomrade/dataset1/patches"
 
   val_ratio:  0.15
   test_ratio: 0.05
@@ -22,12 +22,12 @@ model:
   num_classes: 3
 
   # checkpoint 和结果保存目录
-  output_dir: "TODO: C:/Users/yourname/WeiqiBoardDetect/training/checkpoints"
+  output_dir: "D:/Codes/WeiqiBoardDetect/WeiqiBoardDetect-main/training/checkpoints"
 
 # ── 训练超参数（Windows GTX1080 推荐配置）────────────────────
 train:
-  epochs:      150           # 比 Mac 跑更多轮，GTX1080 快 10-15x
-  batch_size:  32            # 先小 batch 让模型学会，后期再加大
+  epochs:      30            # [快速迭代] 先跑 30 轮看趋势，确定参数没问题再加到 150
+  batch_size:  64            # GTX 1080 8GB 显存建议尝试 64，速度更快
   lr:          0.001
   weight_decay: 0.0001
   num_workers: 0             # Windows 建议先用 0（避免多进程 pickling 问题）
@@ -41,11 +41,11 @@ train:
 
   # 子集训练（快速迭代验证参数有效性）
   # 1.0 = 全量数据；0.2 = 只用 20% 数据，速度提升 5x
-  subset_ratio: 0.2          # 建议先用 0.2 跑 150 轮，参数对了再换 1.0
+  subset_ratio: 0.1          # [快速迭代] 0.1 = 10% 数据，几分钟就能跑完一轮
 
 # ── 日志 ────────────────────────────────────────────────────
 logging:
-  log_dir:               "TODO: C:/Users/yourname/WeiqiBoardDetect/training/log"
+  log_dir:               "D:/Codes/WeiqiBoardDetect/WeiqiBoardDetect-main/training/log"
   save_confusion_matrix: true
 
 # ── 数据增强 ────────────────────────────────────────────────
