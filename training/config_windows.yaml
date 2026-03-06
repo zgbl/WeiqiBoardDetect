@@ -6,11 +6,15 @@
 
 # ── 数据源路径 ─────────────────────────────────────────────
 data:
-  # Gomrade 数据集根目录
-  gomrade_dir: "D:/Codes/Data/Gomrade/dataset1"
+  # Gomrade 数据集根目录 (支持多个路径)
+  gomrade_dir: 
+    - "D:/Codes/Data/Gomrade/dataset1"
+    - "D:/Codes/Data/Gomrade/dataset2"
 
-  # patch 目录（从 Mac 复制过来的 patches/ 文件夹）
-  patches_dir: "D:/Codes/Data/Gomrade/dataset1/patches"
+  # patch 目录 (支持列表，可同时加载多个数据集的图块)
+  patches_dir: 
+    - "D:/Codes/Data/Gomrade/dataset1/patches"
+    - "D:/Codes/Data/Gomrade/dataset2/patches"
 
   val_ratio:  0.15
   test_ratio: 0.05
@@ -26,11 +30,11 @@ model:
 
 # ── 训练超参数（Windows GTX1080 推荐配置）────────────────────
 train:
-  epochs:      30            # [快速迭代] 先跑 30 轮看趋势，确定参数没问题再加到 150
+  epochs:      100           # 最终冲击：目标 100 轮全量数据，彻底稳定模型
   batch_size:  64            # GTX 1080 8GB 显存建议尝试 64，速度更快
   lr:          0.001
   weight_decay: 0.0001
-  num_workers: 4             # 已增加到 4，利用 32GB 内存进行数据预读，缓解 HDD 瓶颈
+  num_workers: 2             # 降低到 2，减少机械硬盘（HDD）的磁头争抢，防止读图卡死
   amp:         true          # CUDA 混合精度，GTX1080 支持，自动加速
 
   # 采样策略（解决 E 类太多的问题）
@@ -41,7 +45,7 @@ train:
 
   # 子集训练（快速迭代验证参数有效性）
   # 1.0 = 全量数据；0.2 = 只用 20% 数据，速度提升 5x
-  subset_ratio: 1.0          # [全量训练] 使用 100% 数据，冲击 95% 以上准确率
+  subset_ratio: 1.0          # [最终冲击] 全量 100% 数据训练
 
 # ── 日志 ────────────────────────────────────────────────────
 logging:
@@ -58,3 +62,8 @@ augment:
     saturation: 0.2
     hue:        0.05
   gaussian_blur:   true
+# ── 实验性：尺寸启发式修正 ──────────────────────────────────
+# 针对白子误判光点的问题，在评估时引入面积过滤
+heuristic:
+  white_area_filter: true
+  min_area_ratio: 0.10       # 白色区域至少占 10% 面积才认为是棋子

@@ -126,15 +126,30 @@ def process_session(session_dir, output_dir, patch_size, stats, debug=False):
     ext_yml = session_dir / "board_extractor_state.yml"
     cls_yml = session_dir / "board_state_classifier_state.yml"
 
-    if not ext_yml.exists() or not cls_yml.exists():
-        return -1  # Silently skip if missing essential files
-
     try:
         # -- Step 1: Read grid coordinates --
-        x_grid, y_grid = parse_classifier_state_yml(cls_yml)
+        # Grid can be in either file (Gomrade version difference)
+        x_grid, y_grid = [], []
+        if cls_yml.exists():
+            x_grid, y_grid = parse_classifier_state_yml(cls_yml)
+        
+        # Fallback to ext_yml if grid not found in cls_yml or if cls_yml doesn't exist
+        if not x_grid or not y_grid:
+            if not ext_yml.exists():
+                tqdm.write(f"  [Skip] {session_dir.name}: Missing board_extractor_state.yml")
+                return 0 # Cannot proceed without ext_yml
+            with open(ext_yml, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                x_grid = data.get("x_grid", [])
+                y_grid = data.get("y_grid", [])
+
+        if not x_grid or not y_grid:
+            tqdm.write(f"  [Skip] {session_dir.name}: Grid coordinates not found in either YML file")
+            return 0
 
         if len(x_grid) != 19 or len(y_grid) != 19:
-            return -1
+            tqdm.write(f"  [Skip] {session_dir.name}: Grid coordinates not 19x19")
+            return 0
 
         # Infer image dimensions from grid coordinates
         # x_grid[0] is often > 0 if there's a margin
@@ -142,6 +157,7 @@ def process_session(session_dir, output_dir, patch_size, stats, debug=False):
         warp_h = y_grid[-1] + y_grid[0] + 1
 
         # -- Step 2: Get perspective matrix --
+        # Matrix always comes from ext_yml
         M = compute_perspective_matrix(ext_yml, warp_w, warp_h)
 
     except Exception as e:
@@ -271,35 +287,44 @@ Example:
 
     config = load_config(args.config)
 
-    gomrade_dir = Path(args.gomrade or get_param(config, "data", "gomrade_dir", default=""))
+    # Support multiple datasets (passed as list in config or comma-separated in CLI)
+    gomrade_raw = args.gomrade or get_param(config, "data", "gomrade_dir", default="")
+    if isinstance(gomrade_raw, list):
+        gomrade_dirs = [Path(p) for p in gomrade_raw]
+    else:
+        # Split by comma if passed via CLI like "--gomrade dir1,dir2"
+        gomrade_dirs = [Path(p.strip()) for p in str(gomrade_raw).split(",") if p.strip()]
+
     output_dir  = Path(args.output  or get_param(config, "data", "patches_dir",  default="patches"))
     patch_size  = args.size         or get_param(config, "model", "patch_size",   default=48)
-
-    if not gomrade_dir.exists():
-        print(f"Error: Gomrade dataset directory not found: {gomrade_dir}")
-        print("Please fix data.gomrade_dir in your config file.")
-        return
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("================================================")
-    print("   Gomrade Patch Extractor (Windows)           ")
+    print("   Gomrade Patch Extractor (Multi-Dataset)     ")
     print("================================================")
-    print(f"  Dataset: {gomrade_dir}")
-    print(f"  Output:  {output_dir}")
+    print(f"  Datasets: {[str(p) for p in gomrade_dirs]}")
+    print(f"  Output:   {output_dir}")
     print(f"  Patch Size: {patch_size}x{patch_size}")
     print()
 
-    sessions = sorted([d for d in gomrade_dir.iterdir() if d.is_dir()])
-    if args.limit:
-        sessions = sessions[:args.limit]
+    all_sessions = []
+    for g_dir in gomrade_dirs:
+        if not g_dir.exists():
+            print(f"Warning: Dataset directory not found: {g_dir}")
+            continue
+        sessions = sorted([d for d in g_dir.iterdir() if d.is_dir()])
+        all_sessions.extend(sessions)
 
-    print(f"  Found {len(sessions)} session folders")
+    if args.limit:
+        all_sessions = all_sessions[:args.limit]
+
+    print(f"  Found {len(all_sessions)} total session folders")
 
     stats = {"B": 0, "W": 0, "E": 0, "processed": 0, "skipped": 0, "no_file": 0}
     total = 0
 
-    for session in tqdm(sessions, desc="Processing sessions", unit="session"):
+    for session in tqdm(all_sessions, desc="Processing sessions", unit="session"):
         debug_this = (args.debug_session is not None and
                       args.debug_session in session.name)
         n = process_session(session, output_dir, patch_size, stats, debug=debug_this)
@@ -321,7 +346,7 @@ Example:
         "sessions_skipped":  stats["skipped"],
         "sessions_no_file":  stats["no_file"],
         "patch_size":        patch_size,
-        "gomrade_dir":       str(gomrade_dir),
+        "gomrade_dirs":      [str(p) for p in gomrade_dirs],
         "output_dir":        str(output_dir),
     }
     with open(output_dir / "summary.json", "w", encoding="utf-8") as f:
