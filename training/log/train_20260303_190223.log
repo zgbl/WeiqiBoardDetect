@@ -1,0 +1,19 @@
+[DEVICE] Using CPU (8 cores)
+
+===========================================
+  Arch: StoneCNN  |  Patch: 48px  |  Epochs: 150
+  Batch: 32  |  LR: 0.001  |  Workers: 0
+  Sampling: sqrt  |  Subset: 20%%
+  Patch Dir: D:\Codes\Data\Gomrade\dataset1\patches
+  Output Dir: D:\Codes\WeiqiBoardDetect\WeiqiBoardDetect-main\training\checkpoints
+===========================================
+
+[DATA] Loading dataset...
+  [SUBSET] Taking first 39,912 samples (20%%) (Quick iteration mode)
+  [train] Total=39,912  B=2,728  W=2,671  E=34,513
+  [val  ] Total=37,417  B=2,662  W=2,546  E=32,209
+  [test ] Total=12,472  B=810  W=873  E=10,789
+[MODEL] StoneCNN — Params: 312,867
+
+[TRAIN] Starting training for 150 epochs...
+

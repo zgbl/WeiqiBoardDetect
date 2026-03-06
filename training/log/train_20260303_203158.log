@@ -1,0 +1,87 @@
+[DEVICE] Using GPU: NVIDIA GeForce GTX 1080
+[AMP] Mixed precision training enabled (saves VRAM, speeds up training)
+
+===========================================
+  Arch: StoneCNN  |  Patch: 48px  |  Epochs: 30
+  Batch: 64  |  LR: 0.001  |  Workers: 4
+  Sampling: sqrt  |  Subset: 10%%
+  Patch Dir: D:\Codes\Data\Gomrade\dataset1\patches
+  Output Dir: D:\Codes\WeiqiBoardDetect\WeiqiBoardDetect-main\training\checkpoints
+===========================================
+
+[DATA] Loading dataset...
+  [SUBSET] Taking first 19,956 samples (10%%) (Quick iteration mode)
+  [train] Total=19,956  B=1,370  W=1,293  E=17,293
+  [val  ] Total=37,417  B=2,662  W=2,546  E=32,209
+  [test ] Total=12,472  B=810  W=873  E=10,789
+[MODEL] StoneCNN — Params: 312,867
+
+[TRAIN] Starting training for 30 epochs...
+
+  * [  1/30] Train 0.5837/0.6952  Val 0.7552/0.8164  LR=9.97e-04  63s  ETA=30m28s
+  * NEW BEST: val_acc=0.7552 -> saved to best_model.pt
+  * [  2/30] Train 0.6467/0.6751  Val 0.7676/0.7409  LR=9.89e-04  65s  ETA=29m53s
+  * NEW BEST: val_acc=0.7676 -> saved to best_model.pt
+    [  3/30] Train 0.6255/0.6621  Val 0.7474/0.7419  LR=9.76e-04  62s  ETA=28m30s
+    [  4/30] Train 0.6212/0.6553  Val 0.6827/0.8259  LR=9.57e-04  61s  ETA=27m13s
+    [  5/30] Train 0.6116/0.6367  Val 0.7465/0.6873  LR=9.33e-04  63s  ETA=26m11s
+    [  6/30] Train 0.6382/0.5988  Val 0.7292/0.7305  LR=9.05e-04  59s  ETA=24m54s
+    [  7/30] Train 0.6386/0.6122  Val 0.6909/0.6992  LR=8.72e-04  62s  ETA=23m49s
+    [  8/30] Train 0.6360/0.5996  Val 0.7032/0.6763  LR=8.35e-04  59s  ETA=22m40s
+    [  9/30] Train 0.6368/0.5899  Val 0.6053/0.7084  LR=7.94e-04  61s  ETA=21m37s
+    [ 10/30] Train 0.6507/0.5746  Val 0.7023/0.6641  LR=7.50e-04  60s  ETA=20m33s
+    [ 11/30] Train 0.6392/0.5765  Val 0.7032/0.6651  LR=7.03e-04  63s  ETA=19m33s
+    [ 12/30] Train 0.6509/0.5802  Val 0.6738/0.6645  LR=6.55e-04  65s  ETA=18m36s
+    [ 13/30] Train 0.6085/0.5837  Val 0.6483/0.6465  LR=6.04e-04  61s  ETA=17m32s
+    [ 14/30] Train 0.6185/0.5623  Val 0.6814/0.6286  LR=5.52e-04  63s  ETA=16m31s
+    [ 15/30] Train 0.6140/0.5621  Val 0.6278/0.6468  LR=5.00e-04  61s  ETA=15m28s
+    [ 16/30] Train 0.6336/0.5490  Val 0.6892/0.6110  LR=4.48e-04  62s  ETA=14m27s
+    [ 17/30] Train 0.6104/0.5633  Val 0.6592/0.6768  LR=3.96e-04  63s  ETA=13m26s
+    [ 18/30] Train 0.6290/0.5528  Val 0.6566/0.6160  LR=3.45e-04  61s  ETA=12m23s
+    [ 19/30] Train 0.6394/0.5408  Val 0.5623/0.6448  LR=2.97e-04  63s  ETA=11m22s
+    [ 20/30] Train 0.6291/0.5361  Val 0.6528/0.6073  LR=2.50e-04  61s  ETA=10m19s
+    [ 21/30] Train 0.6301/0.5325  Val 0.6006/0.6435  LR=2.06e-04  63s  ETA=9m18s
+    [ 22/30] Train 0.6351/0.5416  Val 0.6013/0.6276  LR=1.65e-04  62s  ETA=8m16s
+    [ 23/30] Train 0.6271/0.5324  Val 0.6046/0.6231  LR=1.28e-04  63s  ETA=7m14s
+    [ 24/30] Train 0.6246/0.5265  Val 0.6373/0.6056  LR=9.55e-05  63s  ETA=6m12s
+    [ 25/30] Train 0.6283/0.5275  Val 0.6217/0.6048  LR=6.70e-05  61s  ETA=5m10s
+    [ 26/30] Train 0.6273/0.5199  Val 0.6128/0.6119  LR=4.32e-05  64s  ETA=4m08s
+    [ 27/30] Train 0.6248/0.5226  Val 0.6052/0.6101  LR=2.45e-05  61s  ETA=3m06s
+    [ 28/30] Train 0.6264/0.5163  Val 0.6372/0.5954  LR=1.09e-05  65s  ETA=2m04s
+    [ 29/30] Train 0.6262/0.5255  Val 0.6293/0.5986  LR=2.74e-06  63s  ETA=1m02s
+    [ 30/30] Train 0.6393/0.5166  Val 0.6386/0.5954  LR=0.00e+00  63s  ETA=--
+
+[DONE] Training took 31.1 minutes
+  Best Validation Accuracy: 0.7676 (76.76%%)
+
+[EVAL] Loading best model, evaluating on test set...
+  Test Accuracy: 0.7691 (76.91%%)
+  [SAVE] Training curve -> D:\Codes\WeiqiBoardDetect\WeiqiBoardDetect-main\training\checkpoints/training_curve.png
+  [SAVE] Confusion matrix -> D:\Codes\WeiqiBoardDetect\WeiqiBoardDetect-main\training\checkpoints/confusion_matrix.png
+
+  Classification Report:
+              precision    recall  f1-score   support
+
+           B       0.30      0.77      0.43       810
+           W       0.34      0.67      0.45       873
+           E       0.97      0.78      0.86     10789
+
+    accuracy                           0.77     12472
+   macro avg       0.53      0.74      0.58     12472
+weighted avg       0.88      0.77      0.81     12472
+
+
+[EXPORT] Exporting ONNX model (for mobile deployment)...
+  [WARN] ONNX export failed: Module onnx is not installed!
+
++------------------------------------------+
+|  Training Complete! Output Files         |
++------------------------------------------+
+  D:\Codes\WeiqiBoardDetect\WeiqiBoardDetect-main\training\checkpoints/
+    best_model.pt          <- Best model weights (PyTorch)
+    latest_model.pt        <- Latest checkpoint (for resuming)
+    stone_classifier.onnx  <- ONNX model (for mobile)
+    training_curve.png     <- Training curve plot
+    confusion_matrix.png   <- Confusion matrix (test set)
+    classification_report.txt <- Precision/Recall per class
+    training_summary.json  <- Training summary JSON

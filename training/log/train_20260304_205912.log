@@ -1,0 +1,22 @@
+[DEVICE] Using GPU: NVIDIA GeForce GTX 1080
+[AMP] Mixed precision training enabled (saves VRAM, speeds up training)
+
+===========================================
+  Arch: MobileNetV3  |  Patch: 48px  |  Epochs: 100
+  Batch: 64  |  LR: 0.001  |  Workers: 2
+  Sampling: sqrt  |  Subset: 100%%
+  Patch Dirs: ['D:\\Codes\\Data\\Gomrade\\dataset1\\patches', 'D:\\Codes\\Data\\Gomrade\\dataset2\\patches']
+  Output Dir: D:\Codes\WeiqiBoardDetect\WeiqiBoardDetect-main\training\checkpoints
+===========================================
+
+[DATA] Loading dataset...
+  [train] Total=522,151  B=70,291  W=68,002  E=383,858
+  [val  ] Total=97,903  B=13,167  W=12,574  E=72,162
+  [test ] Total=32,634  B=4,365  W=4,129  E=24,140
+[MODEL] MobileNetV3-Small (Pretrained) — Params: 1,520,931
+[RESUME] Resuming from epoch 61, best val_acc=0.9541
+
+[TRAIN] Starting training for 100 epochs...
+
+    [ 61/100] Train 0.5934/0.6382  Val 0.7236/0.6029  LR=9.97e-04  2986s  ETA=31m49s
+    [ 62/100] Train 0.6739/0.4875  Val 0.7746/0.4922  LR=9.89e-04  3311s  ETA=64m19s
