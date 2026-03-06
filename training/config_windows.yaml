@@ -8,12 +8,10 @@
 data:
   # Gomrade 数据集根目录 (支持多个路径)
   gomrade_dir: 
-    - "D:/Codes/Data/Gomrade/dataset1"
     - "D:/Codes/Data/Gomrade/dataset2"
 
   # patch 目录 (支持列表，可同时加载多个数据集的图块)
   patches_dir: 
-    - "D:/Codes/Data/Gomrade/dataset1/patches"
     - "D:/Codes/Data/Gomrade/dataset2/patches"
 
   val_ratio:  0.15
@@ -30,7 +28,7 @@ model:
 
 # ── 训练超参数（Windows GTX1080 推荐配置）────────────────────
 train:
-  epochs:      100           # 最终冲击：目标 100 轮全量数据，彻底稳定模型
+  epochs:      30            # 30 轮快速实验（针对 Dataset1 清理后效果验证）
   batch_size:  64            # GTX 1080 8GB 显存建议尝试 64，速度更快
   lr:          0.001
   weight_decay: 0.0001
