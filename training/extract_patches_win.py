@@ -295,7 +295,10 @@ Example:
         # Split by comma if passed via CLI like "--gomrade dir1,dir2"
         gomrade_dirs = [Path(p.strip()) for p in str(gomrade_raw).split(",") if p.strip()]
 
-    output_dir  = Path(args.output  or get_param(config, "data", "patches_dir",  default="patches"))
+    out_raw = args.output or get_param(config, "data", "patches_dir", default="patches")
+    if isinstance(out_raw, list):
+        out_raw = out_raw[0] if len(out_raw) > 0 else "patches"
+    output_dir  = Path(out_raw)
     patch_size  = args.size         or get_param(config, "model", "patch_size",   default=48)
 
     output_dir.mkdir(parents=True, exist_ok=True)

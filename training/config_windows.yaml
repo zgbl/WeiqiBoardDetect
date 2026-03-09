@@ -8,11 +8,11 @@
 data:
   # Gomrade 数据集根目录 (支持多个路径)
   gomrade_dir: 
-    - "D:/Codes/Data/Gomrade/dataset2"
+    - "E:/Data/Gomrade/kaggle-gomrade/dataset2"
 
   # patch 目录 (支持列表，可同时加载多个数据集的图块)
   patches_dir: 
-    - "D:/Codes/Data/Gomrade/dataset2/patches"
+    - "E:/Data/Gomrade/patches"
 
   val_ratio:  0.15
   test_ratio: 0.05

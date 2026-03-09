@@ -1,0 +1,49 @@
+# ============================================================
+# WeiqiBoardDetect — Fine-tuning Config (Hard Negatives / Wrong Patches)
+# ============================================================
+
+data:
+  # 只使用您专门挑出来的常误判/困难样本增强训练
+  patches_dir: 
+    - "D:/Codes/Data/kaggle-gomrade/dataset1/patches/Wrong"
+
+  # 由于困难样本应该数量较少，稍微留一点做验证即可
+  val_ratio:  0.15
+  test_ratio: 0.05
+
+model:
+  arch:        "MobileNetV3"   
+  patch_size:  48
+  num_classes: 3
+
+  # 输出路径直接用您准备好的 TrainingModel 目录
+  output_dir: "D:/Codes/WeiqiBoardDetect/WeiqiBoardDetect-main/training/TrainingModel"
+
+train:
+  epochs:      30            
+  batch_size:  32            # 困难样本总数可能不多，减小batch_size让梯度更新更频繁
+  lr:          0.0001        # 保持微调的极低学习率，谨防破坏先前学到的通用特征
+  weight_decay: 0.0001
+  num_workers: 0             # 保证稳定
+  amp:         true          
+  sampling_strategy: "equal" # 困难样本往往类别极度不平衡(比如某个类特别容易错)，强制等权采样
+  subset_ratio: 1.0          
+
+logging:
+  log_dir: "D:/Codes/WeiqiBoardDetect/WeiqiBoardDetect-main/training/log_hard_ft"
+  save_confusion_matrix: true
+
+augment:
+  # 困难样本更需要多变的数据增强来防止严重过拟合
+  random_flip:     true
+  random_rotation: 15
+  color_jitter:
+    brightness: 0.4
+    contrast:   0.4
+    saturation: 0.2
+    hue:        0.05
+  gaussian_blur:   true
+
+# 都是人工挑选的，关闭启发式清洗
+heuristic:
+  white_area_filter: false
