@@ -1,0 +1,48 @@
+# ============================================================
+# WeiqiBoardDetect — Fine-tuning Config (Good Real Data)
+# ============================================================
+
+data:
+  # 这次只使用纯手工挑选/提取的好数据
+  patches_dir: 
+    - "D:/Codes/Data/kaggle-gomrade/Dataset1-GoodPatch"
+
+  # 由于数据是从好数据里手工整理来的，不一定有session文件夹，随机划分即可
+  val_ratio:  0.15
+  test_ratio: 0.05
+
+model:
+  arch:        "MobileNetV3"   
+  patch_size:  48
+  num_classes: 3
+
+  # 保存到新的目录，避免覆盖合成数据检查点
+  output_dir: "D:/Codes/WeiqiBoardDetect/WeiqiBoardDetect-main/training/checkpoints_v11_real_ft"
+
+train:
+  epochs:      30            
+  batch_size:  64           
+  lr:          0.0001        # 微调学习率要降低 10 倍！原先是0.001
+  weight_decay: 0.0001
+  num_workers: 0             # 保证稳定
+  amp:         true          
+  sampling_strategy: "sqrt"  
+  subset_ratio: 1.0          
+
+logging:
+  log_dir: "D:/Codes/WeiqiBoardDetect/WeiqiBoardDetect-main/training/log_real_ft"
+  save_confusion_matrix: true
+
+augment:
+  random_flip:     true
+  random_rotation: 15
+  color_jitter:
+    brightness: 0.4
+    contrast:   0.4
+    saturation: 0.2
+    hue:        0.05
+  gaussian_blur:   true
+
+# 因为是经过挑选的“好数据”，也等同于没有噪点误标注，直接关闭启发式过滤
+heuristic:
+  white_area_filter: false
