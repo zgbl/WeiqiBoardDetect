@@ -52,7 +52,7 @@ AI_CornerDetect/
 在开始长时间训练前，必须确认数据集坐标是否正确。
 ```bash
 # Mac/Windows 通用
-python verify_dataset.py --session 6
+python verify_dataset.py --gomrade_root "E:/Data/Gomrade/kaggle-gomrade/dataset1" --session Hueber-Fanti2
 ```
 检查 `data_check/` 下生成的图片。
 > **注意**：程序已内置 `sort_points` 逻辑，训练时会自动将标注点统一为顺时针顺序：[左上, 右上, 右下, 左下]。
@@ -67,7 +67,7 @@ python train.py
 #### Windows (使用 NVIDIA 1080 加速)
 默认 `batch_size` 为 32。
 ```bash
-python train_win.py --data "C:/你的数据集路径/Gomrade-dataset1" --batch_size 32
+python train_win.py --data "E:/Data/Gomrade/kaggle-gomrade/dataset1" --batch_size 32
 ```
 
 ### 第三步：推理与效果检查 (Inference)

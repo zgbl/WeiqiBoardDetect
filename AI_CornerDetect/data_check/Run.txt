@@ -1,0 +1,1 @@
+python inference.py --img "E:\Data\WeiqiPics\IMG20160706172053.jpg" --model checkpoints/best_model.pth

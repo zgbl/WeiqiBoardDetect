@@ -7,18 +7,23 @@ from torch.utils.data import Dataset
 from pathlib import Path
 
 class GomradeCornerDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, session_paths=None, transform=None):
         """
         Args:
-            root_dir: Gomrade-dataset1 的根路径
+            root_dir: Gomrade-dataset1 根路径
+            session_paths: 可选，指定的 session 目录列表
             transform: pytorch 图像变换
         """
         self.root_dir = Path(root_dir)
         self.transform = transform
         self.samples = []
         
-        # 遍历所有子目录
-        sessions = sorted([d for d in self.root_dir.iterdir() if d.is_dir()])
+        # 如果没传 session_paths，就遍历所有
+        if session_paths is None:
+            sessions = sorted([d for d in self.root_dir.iterdir() if d.is_dir()])
+        else:
+            sessions = session_paths
+            
         for session in sessions:
             ext_yml = session / "board_extractor_state.yml"
             if not ext_yml.exists():

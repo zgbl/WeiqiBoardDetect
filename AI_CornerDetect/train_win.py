@@ -23,11 +23,11 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 def train_windows():
     # 0. 参数设置
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="C:/Data/Gomrade-dataset1", help="Windows 上数据集的路径")
+    parser.add_argument("--data", default="E:/Data/Gomrade/kaggle-gomrade/dataset1", help="Windows 上数据集的路径")
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=32) # 1080 8G 显存可以开到 32 甚至更高
     parser.add_argument("--lr", type=float, default=1e-3)
-    parser.add_argument("--num_workers", type=int, default=4) # Windows 下建议不要设置太高，否则容易内存报错
+    parser.add_argument("--num_workers", type=int, default=0) # Windows 下建议不要设置太高，否则容易内存报错
     args = parser.parse_args()
 
     # 1. 设备配置 (优先使用 CUDA)
