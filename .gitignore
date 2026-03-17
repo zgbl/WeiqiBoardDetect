@@ -86,3 +86,5 @@ data/synthetic/
 *.temp
 tmp/
 temp/
+AI_CornerDetect/visualization_output/
+AI_CornerDetect/PatchRefine/validation_results/

@@ -2,26 +2,29 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-class PatchCornerRegressor(nn.Module):
-    def __init__(self, backbone='resnet18', pretrained=True):
-        super(PatchCornerRegressor, self).__init__()
-        if backbone == 'resnet18':
-            weights = models.ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
-            self.model = models.resnet18(weights=weights)
-            in_features = self.model.fc.in_features
-            self.model.fc = nn.Sequential(
-                nn.Linear(in_features, 128),
-                nn.ReLU(),
-                nn.Linear(128, 2)
-            )
-        elif backbone == 'mobilenet_v3':
-            weights = models.MobileNet_V3_Small_Weights.IMAGENET1K_V1 if pretrained else None
-            self.model = models.mobilenet_v3_small(weights=weights)
-            in_features = self.model.classifier[0].in_features
-            self.model.classifier = nn.Sequential(
-                nn.Linear(in_features, 128),
-                nn.Hardswish(),
-                nn.Linear(128, 2)
-            )
+class PatchDetector(nn.Module):
+    def __init__(self, backbone='resnet18'):
+        super(PatchDetector, self).__init__()
+        self.backbone = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+        in_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Identity() # 移除原有的 FC 层
+
+        # 头部 1: 分类 (0:BG, 1:TL, 2:TR, 3:BR, 4:BL)
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features, 256),
+            nn.ReLU(),
+            nn.Linear(256, 5)
+        )
+        
+        # 头部 2: 坐标回归 (x, y)
+        self.regressor = nn.Sequential(
+            nn.Linear(in_features, 256),
+            nn.ReLU(),
+            nn.Linear(256, 2)
+        )
+
     def forward(self, x):
-        return self.model(x)
+        features = self.backbone(x)
+        cls_logits = self.classifier(features)
+        reg_coords = self.regressor(features)
+        return cls_logits, reg_coords
