@@ -5,11 +5,13 @@ import numpy as np
 from torch.utils.data import Dataset
 from pathlib import Path
 import yaml
+import random
 
 class GlobalBoardDataset(Dataset):
-    def __init__(self, root_dirs, img_size=224, heatmap_size=56):
+    def __init__(self, root_dirs, img_size=224, heatmap_size=56, is_train=True):
         self.img_size = img_size
         self.heatmap_size = heatmap_size
+        self.is_train = is_train
         self.samples = []
         
         for root in root_dirs:
@@ -26,34 +28,59 @@ class GlobalBoardDataset(Dataset):
                 pts = np.array(data['pts_clicks'], dtype=np.float32)
                 
                 # 排序点 TL, TR, BR, BL
-                pts = self.sort_points(pts)
+                pts = self.sort_pts_clockwise(pts)
                 
                 for img_path in session.glob("*.png"):
                     self.samples.append({"img": img_path, "pts": pts})
         
-        print(f"Global dataset ready: {len(self.samples)} images.")
+        print(f"Dataset Loaded: {len(self.samples)} images. Augment={is_train}")
 
-    def sort_points(self, pts):
-        pts = pts[np.argsort(pts[:, 1]), :]
-        top = pts[:2, :][np.argsort(pts[:2, 0]), :]
-        bottom = pts[2:, :][np.argsort(pts[2:, 0]), :]
-        return np.array([top[0], top[1], bottom[1], bottom[0]]) # TL, TR, BR, BL
+    def sort_pts_clockwise(self, pts):
+        center = np.mean(pts, axis=0)
+        angles = np.arctan2(pts[:, 1] - center[1], pts[:, 0] - center[0])
+        pts = pts[np.argsort(angles)]
+        sums = pts[:, 0] + pts[:, 1]
+        tl_idx = np.argmin(sums)
+        return np.roll(pts, -tl_idx, axis=0)
+
+    def augment(self, img, pts):
+        h, w = img.shape[:2]
+        # 1. 随机旋转 (-30 到 30)
+        angle = random.uniform(-30, 30)
+        center = (w // 2, h // 2)
+        M = cv2.getRotationMatrix2D(center, angle, 1.0)
+        img = cv2.warpAffine(img, M, (w, h), borderMode=cv2.BORDER_REFLECT_101)
+        
+        pts_ones = np.ones((4, 3))
+        pts_ones[:, :2] = pts
+        pts = M.dot(pts_ones.T).T
+        
+        # 2. 随机缩放与平移 (模拟拍摄距离和位置)
+        scale = random.uniform(0.7, 1.1)
+        tx = random.uniform(-w*0.05, w*0.05)
+        ty = random.uniform(-h*0.05, h*0.05)
+        M_st = np.float32([[scale, 0, tx], [0, scale, ty]])
+        img = cv2.warpAffine(img, M_st, (w, h), borderMode=cv2.BORDER_REFLECT_101)
+        
+        pts_ones[:, :2] = pts
+        pts = M_st.dot(pts_ones.T).T
+        
+        # 3. 色彩增强
+        if random.random() > 0.5:
+            brightness = random.uniform(0.7, 1.3)
+            img = cv2.convertScaleAbs(img, alpha=brightness, beta=0)
+            
+        return img, pts
 
     def create_heatmap(self, pts, h, w):
-        # 4 个通道对应 4 个角
         heatmaps = np.zeros((4, self.heatmap_size, self.heatmap_size), dtype=np.float32)
-        stride = self.img_size / self.heatmap_size
-        
+        sigma = 2.0 # 稍微增大半径，让 Loss 更容易下降
         for i, (px, py) in enumerate(pts):
-            # 将原图坐标映射到热力图尺度
-            tx = (px / w * self.img_size) / stride
-            ty = (py / h * self.img_size) / stride
-            
-            # 在 (tx, ty) 处画一个高斯园
-            for y in range(self.heatmap_size):
-                for x in range(self.heatmap_size):
-                    dist_sq = (x - tx)**2 + (y - ty)**2
-                    heatmaps[i, y, x] = np.exp(-dist_sq / (2 * 1.5**2)) # 半径为 1.5 的高斯核
+            tx, ty = (px / w * self.heatmap_size), (py / h * self.heatmap_size)
+            if 0 <= tx < self.heatmap_size and 0 <= ty < self.heatmap_size:
+                grid_y, grid_x = np.mgrid[0:self.heatmap_size, 0:self.heatmap_size]
+                dist_sq = (grid_x - tx)**2 + (grid_y - ty)**2
+                heatmaps[i] = np.exp(-dist_sq / (2 * sigma**2))
         return heatmaps
 
     def __len__(self):
@@ -62,18 +89,19 @@ class GlobalBoardDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         img = cv2.imread(str(sample['img']))
-        h, w = img.shape[:2]
+        pts = sample['pts'].copy()
         
-        # 缩放图像
+        if self.is_train:
+            img, pts = self.augment(img, pts)
+        
+        h, w = img.shape[:2]
         img_resized = cv2.resize(img, (self.img_size, self.img_size))
         img_rgb = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
         
-        # 生成 4 通道热力图
-        heatmaps = self.create_heatmap(sample['pts'], h, w)
+        heatmaps = self.create_heatmap(pts, h, w)
         
-        # 转换并归一化
+        # 归一化: 严格按照 ImageNet 标准
         img_tensor = torch.from_numpy(img_rgb).permute(2, 0, 1).float() / 255.0
-        # 标准 ImageNet 归一化
         mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
         std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
         img_tensor = (img_tensor - mean) / std

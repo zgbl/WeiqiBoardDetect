@@ -58,7 +58,9 @@ def predict(image_path, model_path, device='cpu'):
     plt.legend()
     plt.title("Model Prediction")
     
-    output_vis = Path("data_check") / f"pred_{Path(image_path).name}"
+    output_vis = Path("data_check") /"output"/ f"pred_{Path(image_path).name}"
+    output_vis.parent.mkdir(parents=True, exist_ok=True)  # 确保子目录存在
+    print("output path is:", output_vis)
     plt.savefig(output_vis)
     plt.show()
     print(f"Prediction saved to {output_vis}")
