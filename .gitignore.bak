@@ -2,20 +2,24 @@
 # WeiqiBoardDetect — .gitignore
 # ============================================================
 
-# ── 训练数据（体积极大，不入版本库）─────────────────────────
+# ── 训练数据与备份（体积极大，不入版本库）───────────────────
 # 明确列出所有可能的命名方式
 training/patches/
 training/patches-*/
 training/patches_*/
 training/patches*/
+training/backup*/
 patches/
 patches-*/
 patches_*/
 patches*/
-# 任意子目录下的 patches 文件夹（双星号通配）
+backup*/
+# 任意子目录下的 patches/backup 文件夹（双星号通配）
 **/patches/
 **/patches-*/
 **/patches_*/
+**/backup*/
+**/backup_*/
 
 # ── 模型权重（几百MB，用 releases 或单独管理）───────────────
 training/checkpoints*/
@@ -80,12 +84,15 @@ data_gen/output/
 data_gen/outputs/
 data/processed/
 data/synthetic/
+# 合成数据集（不入版本库）
+data/gendata/
+data/gendata2/
+data/gendata.zip
+data/gendata*
+
 
 # ── 临时文件 ─────────────────────────────────────────────────
 *.tmp
 *.temp
 tmp/
 temp/
-AI_CornerDetect/visualization_output/
-AI_CornerDetect/PatchRefine/validation_results/
-data/
