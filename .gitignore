@@ -89,3 +89,4 @@ temp/
 AI_CornerDetect/visualization_output/
 AI_CornerDetect/PatchRefine/validation_results/
 data/
+AI_CornerDetect/Mac/debug_extracted_patches/

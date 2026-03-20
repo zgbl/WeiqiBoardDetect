@@ -240,14 +240,17 @@ def select_n_evenly_spaced(lines, n=19, group_peak_angle=0):
     expected_gap = span / (n - 1)
     
     cleaned_lines = []
+    print("number is line is:", len(lines))
+    #print("在这个之前，棋盘纵线已经丢失了")
+    
     if len(lines) > 0:
         cleaned_lines.append(lines[0])
         for i in range(1, len(lines)):
             curr_rho, curr_theta = lines[i]
             prev_rho, prev_theta = cleaned_lines[-1]
             
-            # 【提高门槛】间距小于预期的 70% 说明太密了，二选一
-            if (curr_rho - prev_rho) < 0.7 * expected_gap:
+            # 【提高门槛】间距小于预期的 40% 说明太密了，二选一
+            if (curr_rho - prev_rho) < 0.1 * expected_gap:
                 dist_curr = circular_angle_diff(curr_theta, group_peak_angle)
                 dist_prev = circular_angle_diff(prev_theta, group_peak_angle)
                 # 角度更准的留下
@@ -257,8 +260,8 @@ def select_n_evenly_spaced(lines, n=19, group_peak_angle=0):
                     continue 
             else:
                 cleaned_lines.append(lines[i])
-    
-    print(f"Pre-filter: {len(lines)} -> {len(cleaned_lines)} (threshold: {0.7 * expected_gap:.1f}px)")
+   
+    print(f"Pre-filter: {len(lines)} -> {len(cleaned_lines)} (threshold: {0.4 * expected_gap:.1f}px)")
     lines = cleaned_lines
     if len(lines) <= n: return lines
 
@@ -270,7 +273,8 @@ def select_n_evenly_spaced(lines, n=19, group_peak_angle=0):
     
     # 【核心修正】计算统计中位间距时，必须排除掉那些依然存在的“局部高密度”噪声
     diffs = np.diff(rhos)
-    valid_diffs = diffs[diffs > 0.75 * expected_gap] # 过滤掉所有过小的间距
+    #valid_diffs = diffs[diffs > 0.75 * expected_gap] # 过滤掉所有过小的间距  # 0.75 可能门槛太高了，丢了线。 3.18.2026 TXY
+    valid_diffs = diffs[diffs > 0.5 * expected_gap]
     typical_gap = np.median(valid_diffs) if len(valid_diffs) >= 5 else expected_gap
     
     # 安全锁：防止由于某些极端透视导致 typical_gap 缩水太厉害
@@ -353,6 +357,24 @@ def find_board_corners(intersections, img_shape):
     bottom_left = pts[np.argmin(diffs)]   
 
     return [tuple(top_left), tuple(top_right), tuple(bottom_right), tuple(bottom_left)]
+    
+def filter_angle_outliers(clustered_lines, reference_angle, max_dev_deg=5):
+    """踢掉角度偏离 reference_angle 超过 max_dev_deg 的线。
+    reference_angle 应该用 separate_by_angle 返回的峰值角度，
+    不要用 np.median —— 角度在 0°/180° 边界会算错。
+    """
+    if len(clustered_lines) < 5:
+        return clustered_lines
+    ref = reference_angle % np.pi
+    filtered = []
+    for rho, theta in clustered_lines:
+        dev = circular_angle_diff(theta % np.pi, ref)
+        if dev < np.radians(max_dev_deg):
+            filtered.append((rho, theta))
+    print(f"Angle filter: {len(clustered_lines)} -> {len(filtered)} (ref={np.degrees(ref):.1f}°, ±{max_dev_deg}°)")
+    if len(filtered) < 19:
+        print(f"  警告: 只剩 {len(filtered)} 条线，不够19")
+    return filtered
 
 
 # =====================================================================
@@ -411,6 +433,7 @@ class OpenCVDetector:
         # 【最终优化】使用正交引导后，容差可以收缩到合理范围 (18度纵线，10度横线)
         # 修改：让 it 返回波峰角度，供后续精挑细选
         group1, group2, ignored_lines, p1_angle, p2_angle = separate_by_angle(lines_list, v_tol=18, h_tol=10)
+        print("p1_angle", p1_angle, "p2_angle", p2_angle)
         
         def get_group_angle(group):
             if not group: return 0.0
@@ -438,7 +461,14 @@ class OpenCVDetector:
         # 让 DP 算法去筛选 19 条，而不是在这里就把线“粘”在一起。
         clustered1 = cluster_lines(group1, rho_threshold=6)
         clustered2 = cluster_lines(group2, rho_threshold=6)
-        print(f"After clustering: Group1={len(clustered1)}, Group2={len(clustered2)}")
+        print(f"After clustering, 在clusterLine之后，根数: Group1={len(clustered1)}, Group2={len(clustered2)}")
+
+        # 角度过滤：横线用紧容差(±3°)，竖线用宽容差(±15°) — 透视会让竖线扇形展开
+        h_dev = 3; v_dev = 15
+        p1_is_h = circular_angle_diff(p1_angle, np.pi/2) < np.radians(45)
+        clustered1 = filter_angle_outliers(clustered1, reference_angle=p1_angle, max_dev_deg=h_dev if p1_is_h else v_dev)
+        clustered2 = filter_angle_outliers(clustered2, reference_angle=p2_angle, max_dev_deg=v_dev if p1_is_h else h_dev)
+        print("filter_angle_outliers 之后 clustered1 的根数 is now:", len(clustered1), "clustered2 的根数is now:", len(clustered2))
 
 
         # 【重点】调用时带上波峰角度，进行“浅交叉”预过滤

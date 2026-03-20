@@ -5,9 +5,9 @@ from pathlib import Path
 
 # 保证能顺利导我们的独立 module
 sys.path.append(str(Path(__file__).parent))
-from opencv_engine import OpenCVDetector
+from opencv_engine1b import OpenCVDetector
 #from opencv_engine_qw_V1 import OpenCVDetector
-#python /Users/tuxy/Codes/AI/WeiqiBoardDetect/AI_CornerDetect/Mac/test_mac.py --img /Users/tuxy/Codes/AI/Data/EmptyBoard/EmptyBoard3.jpg
+#python /Users/tuxy/Codes/AI/WeiqiBoardDetect/AI_CornerDetect/Mac/test_mac1b.py --img /Users/tuxy/Codes/AI/Data/EmptyBoard/EmptyBoard3.jpg
 
 
 from cnn_engine import CNNVerifier
