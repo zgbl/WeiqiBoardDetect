@@ -6,10 +6,9 @@ from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 import cv2
 import numpy as np
+import argparse
 from pathlib import Path
-import sys
-
-# 手动添加路径以导入 PatchClassifier
+import sys# 手动添加路径以导入 PatchClassifier
 MAC_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.dirname(MAC_DIR)
 CLASSIFIER_V1_DIR = os.path.join(PARENT_DIR, "Classifier_V1")
@@ -75,12 +74,36 @@ class ScratchDataset(Dataset):
         return img, label
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--resume', type=str, default="", help="Path to weights for incremental training")
+    args = parser.parse_args()
+
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"[*] Training on: {device}")
 
     # 1. 初始化一个全新的 PatchClassifier (仅保留 ImageNet 初始特征，丢弃 V3/V4 权重)
     model = PatchClassifier(num_classes=4).to(device)
-    print("[*] Model initialized from scratch (reset all local weights).")
+    
+    if args.resume:
+        if os.path.exists(args.resume):
+            ckpt = torch.load(args.resume, map_location=device)
+            state_dict = ckpt.get("model") or ckpt.get("model_state_dict") or ckpt
+            new_sd = {}
+            model_keys = model.state_dict().keys()
+            for k, v in state_dict.items():
+                if k in model_keys:
+                    new_sd[k] = v
+                elif "backbone." + k in model_keys:
+                    new_sd["backbone." + k] = v
+                elif k.replace("backbone.", "") in model_keys:
+                    new_sd[k.replace("backbone.", "")] = v
+            model.load_state_dict(new_sd, strict=False)
+            print(f"[*] Resumed training from weights: {args.resume}")
+        else:
+            print(f"[Error] Resume weights not found: {args.resume}")
+            return
+    else:
+        print("[*] Model initialized from scratch (reset all local weights).")
 
     # 2. 加载整理后的这一小批数据
     dataset = ScratchDataset(DATA_DIR)
