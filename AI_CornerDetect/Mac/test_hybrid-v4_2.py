@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
-from hybrid_scanner_v4_2 import HybridScannerV4_2
+from hybrid_scanner_v4_3 import HybridScannerV4_3
 
-# python /Users/tuxy/Codes/AI/WeiqiBoardDetect/AI_CornerDetect/Mac/test_hybrid-v4_2.py --img /Users/tuxy/Codes/AI/Data/EmptyBoard/EmptyBoard3.jpg
+# python /Users/tuxy/Codes/AI/WeiqiBoardDetect/AI_CornerDetect/Mac/test_hybrid-v4_3.py --img /Users/tuxy/Codes/AI/Data/EmptyBoard/EmptyBoard3.jpg
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
         print("[-] 无法读取图片:", args.img)
         return
 
-    scanner = HybridScannerV4_2(args.weights, debug_show=True)
+    scanner = HybridScannerV4_3(args.weights, debug_show=True)
     corners, sel_h, sel_v, edges, dist_dir1, dist_dir2 = scanner.detect(img)
 
     if len(corners) >= 4:
