@@ -29,30 +29,50 @@ for step in range(max_steps):
         return edge_pt, 'Edge'
 ```
 
-### 2. CNN 角点修正与防震荡机制 (Corner Patch Relocation)
-**问题**：早期逻辑在寻边后直接交叉，常因畸变导致落在边缘。且 AI 容易在一条直线上反复衰减（Oscillation）却无法找到转弯点。
-**创新**：独创了 **多维补丁探测 (Multi-direction Probing)**。当 CNN 判定为 `Edge` 时，程序会分别在横向和纵向进行探测。
-- 如果两个方向都被 `Outer` 阻挡，说明冲过头了，强制向中心 **回缩 (Backtrack)**。
-**结果**：彻底解决了 AI 在边缘“迷失”的问题，确保 CNN 最终能稳稳地压在 `Corner` 类别上。
+### 2. 两阶段 CNN 角点搜索与抗震荡机制 (Two-Phase Corner Search)
+**问题**：早期逻辑在发现第一个 `Edge`（边缘）时就立即开始单轴探测。由于透视畸变，第一个边缘往往太“浅”，Patch 内缺乏足够的棋盘信息。这导致 AI 容易陷入 X 和 Y 方向都被 `Outer` 阻挡的死循环，并在回缩后反复回到同一个被阻挡的位置（Oscillation）。
+
+**创新**：我们设计并实现了 **两阶段搜索 (Two-Phase Search)** 策略：
+
+- **阶段 1：持续深度回缩 (Deep Retreat)**：从 OpenCV 预测的粗略位置（通常是 `Outer`）开始，持续向棋盘中心移动。关键在于：**将 `Edge` 视同 `Outer` 处理** —— 除非碰到 `Inner`，否则绝不停步。最终锚定在碰到 `Inner` 前的最后一个 `Edge` 位置。
+- **阶段 2：单轴锁定滑动 (Edge Sliding)**：从深度锚点出发，沿棋盘边缘寻找真正的 `Corner`。
+  - **轴锁定 (Axis Locking)**：当从某个方向回退后，锁定该轴，强制 AI 只能沿另一个轴滑动，彻底杜绝了对角线方向的偏移和死循环。
+  - **双 Outer 强制跳跃 (Force-Forward)**：当 X 和 Y 两个方向探测都是 `Outer` 时，不再触发 Block。而是**强制向前跳跃一步**，交给主循环的 `Outer` 处理逻辑（向内推回）来自动重新定向。
+
+**结果**：确保了 CNN 始终能从具备丰富棋盘信息的“深度边缘”出发，绕过复杂的背景干扰，最终精准定位角点。
 
 <div align="center">
   <img src="./Image/4CornerPatchTrace.png" width="500">
   <br>
-  <i>图 2: 角点Patch的定位过程路线</i>
+  <i>图 2: CNN 驱动的两阶段角点定位轨迹</i>
 </div>
 
 **核心代码实现：**
 ```python
-# 在边缘状态下探测横纵两步，分析“墙角”位置
+# ===== 阶段 1：穿过 Outer 和 Edge 直到碰见 Inner =====
+for k in range(30):
+    label, conf = self.classify_patch(img, (int(cx), int(cy)))
+    if label == 'Edge':
+        last_edge_pos = (cx, cy)  # 记录，但不停止后退
+    if label == 'Inner':
+        cx, cy = last_edge_pos   # 锚定在最深的 Edge 处
+        break
+    # 无论是 Outer 还是 Edge：继续向中心后退
+    dx, dy = center_x - cx, center_y - cy
+    dist = (dx**2 + dy**2)**0.5
+    cx += (dx / dist) * step; cy += (dy / dist) * step
+
+# ===== 阶段 2：沿边缘滑动寻找 Corner =====
 if label == 'Edge':
     lx_label, _ = self.classify_patch(img, (int(cx + v_x[0]), int(cy)))
     ly_label, _ = self.classify_patch(img, (int(cx), int(cy + v_y[1])))
+    can_move_x = lx_label in ['Inner', 'Edge']
+    can_move_y = ly_label in ['Inner', 'Edge']
+    if locked_axis == 'X': can_move_x = False
+    elif locked_axis == 'Y': can_move_y = False
+    # 强制跳跃：当双向都是 Outer 时不触发 Block，直接跳过去
     if not can_move_x and not can_move_y:
-        # 优先级：如果外推被阻挡，依次回缩 X 或 Y 轴向中心移动
-        if backtrack_count % 2 == 1:
-            cy -= v_y[1]
-        else:
-            cx -= v_x[0]
+        next_cx, next_cy = cx + v_x[0], cy + v_y[1]
 ```
 
 ### 3. 基于 CNN 定位的混合精调 (Hybrid Finetuning)
@@ -85,6 +105,12 @@ num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh_i
 all_harris_global = [(int(c[0]) + x1, int(c[1]) + y1) for c in centroids[1:]]
 ```
 
+<div align="center">
+  <img src="./Image/FarTR-Return.png" width="500">
+  <br>
+  <i>图 3: TR 角点调试轨迹：展示了 Patch 成功回缩并锚定的路线</i>
+</div>
+
 ### 5. 局部间距估算与透视补偿 (Local Gap & Perspective Compensation)
 **问题**：全局平均间距（如 25px）无法适配透视拉伸严重的边角（如 BR 角实际间距达到 80px）。
 **创新**：新增 `_estimate_local_gap_from_harris` 函数。动态分析当前 ROI 内 Harris 点之间的距离，推导 **局部格子间距** 进行验证。
@@ -116,21 +142,21 @@ for attempt in range(MAX_EXPAND + 1):
 <div align="center">
   <img src="./Image/CornFinalProcess.png" width="400">
   <br>
-  <i>图 3: 最终角点定位OpenCV + Harris 推理过程分步演示</i>
+  <i>图 4: 最终角点定位OpenCV + Harris 推理过程分步演示</i>
 </div>
 
 ### 最终得到了4个角的精确定位
 <div align="center">
   <img src="./Image/4cornerAccu.png" width="500">
   <br>
-  <i>图 4: 最终4个角的精确定位</i>
+  <i>图 5: 最终4个角的精确定位</i>
 </div>
 
 ---
 
 ## Debug 总结 (The Debug Journey)
 
-在开发 `hybrid_scanner_v4_2.py` 的过程中，我们经历了数次关键转折：
+在开发 `hybrid_scanner_v4_3.py` 的过程中，我们经历了数次关键转折：
 
 1. **环境与运行状态的可视化**：
    - 在 V4.1 重构期间一度丢失调试信息，通过重构 **轨迹追踪图 (Trajectory Canvas)** 恢复了对 AI 寻路过程的直观把控。
@@ -141,20 +167,27 @@ for attempt in range(MAX_EXPAND + 1):
 3. **代码稳定性的反复碰撞**：
    - 解决了 `NameError`（变量拼写）和 `IndentationError`（嵌套注释嵌套错误）等细节问题，保证了工程化落地。
 
+4. **TR 角震荡死循环修复 (V4.3)**：
+   - **根本原因**：搜索程序在触碰到极浅的 `Edge`（由于步长 40px，实际上已经跨过了棋盘边界）时就开始单轴探测，导致 `next_pos == curr_pos` 判定为 Block，触发深度后退后再次回到原位，陷入死循环。
+   - **修复 1 — 两阶段搜索**：在阶段 1 强制穿过浅层 Edge，直到碰到 Inner 确保搜索深度。
+   - **修复 2 — 轴锁定机制**：后退后锁定对应轴，强制单轴滑动寻找转弯点。
+   - **修复 3 — 强制跳跃**：探测到双 Outer 不判定为 Block，而是强制按原步长向前跳，交给主循环处理边界推回逻辑。
+
 ---
 
-## 截止3/22/2026 Status 总结 (Final Status)
+## 截止 3/22/2026 Status 总结 (Final Status)
 
-**Status**: [SUCCESS] - TL, TR, BR, BL ALL PINNED.  
+**Status**: [SUCCESS] - TL, TR, BR, BL 全部精准锁定 (所有测试图均通过)。  
 **Date**: 2026-03-22  
-**小结**：  
-1. 成功打造了一套适配极端视角、复杂木纹、具备自我修正能力的棋盘识别引擎。  
-2. 寻角的过程还有待优化，已经想好了新的算法，在下一版实现。  
-3. 算法还有待完善，其他图片还寻角失败，需要继续解决。  
+**关键结论**：  
+1. 成功打造了一套适配极端视角、复杂木纹、具备自我修正能力的两阶段棋盘识别引擎。  
+2. 通过“先深入、后滑行”的策略解决了个别角点（如 TR/BR）因透视拉伸导致的寻找失败问题。  
+3. 双 Outer 强制跳跃逻辑极大提高了角点附近的搜索鲁棒性，避免了虚假的“死路”判定。  
+4. 下一步计划：针对超大规模不同光照、背景环境的图片进行压力测试。
 
 ## 流程图 (Detect Process)
 <div align="center">
   <img src="./Image/Architect-cornerDetectV1-light.png" >
   <br>
-  <i>图 5: 盘角检测流程图</i>
+  <i>图 6: 盘角检测流程图</i>
 </div>

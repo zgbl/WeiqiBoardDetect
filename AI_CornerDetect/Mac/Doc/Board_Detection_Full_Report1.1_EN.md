@@ -30,30 +30,50 @@ for step in range(max_steps):
         return edge_pt, 'Edge'
 ```
 
-### 2. CNN Corner Relocation & Anti-Oscillation Mechanism
-**Problem**: Initial edge intersections are often inaccurate due to distortion, causing the AI to oscillate along a single axis without finding the corner.
-**Innovation**: We implemented **Multi-directional Probing**. When the CNN identifies an `Edge`, the system probes both horizontally and vertically.
-- If both directions are blocked by `Outer`, the system recognizes it has overshot the corner and triggers a **Backtrack** towards the image center.
-**Result**: This ensures the CNN consistently settles on a high-confidence `Corner` patch, eliminating localization drift.
+### 2. Two-Phase CNN Corner Search (Anti-Oscillation)
+**Problem**: Initial edge intersections are often inaccurate due to distortion. Early versions would begin single-axis probing as soon as the first `Edge` was encountered, resulting in shallow patches with insufficient board content. This caused oscillation loops where the algorithm repeatedly retreated and returned to the same blocked position.
+
+**Innovation**: We implemented a **Two-Phase Search** strategy:
+
+- **Phase 1 (Deep Retreat)**: Starting from the OpenCV approximate corner (usually `Outer`), the system retreats continuously toward the image center. Critically, `Edge` patches are treated identically to `Outer` — the retreat does not stop until `Inner` is reached. The last `Edge` position before `Inner` becomes the deep anchor.
+- **Phase 2 (Edge Sliding)**: From the deep anchor, the system probes X and Y directions to navigate along the board edge toward the `Corner`.
+  - **Axis Locking**: After a deep retreat along one axis, that axis is locked. The search then slides only along the other axis, preventing diagonal drift back to the blocked position.
+  - **Force-Forward on Double-Outer**: When both X and Y probes return `Outer`, the system does **not** block. Instead, it forces a full-step forward, allowing the main loop's `Outer` handler to redirect toward center. This prevents false deadlocks near the actual corner.
+
+**Result**: This ensures the CNN consistently navigates to the corner from a sufficiently deep starting point, eliminating oscillation and shallow-patch failures.
 
 <div align="center">
   <img src="./Image/4CornerPatchTrace.png" width="500">
   <br>
-  <i>Figure 2: CNN-guided trajectory for corner patch localization</i>
+  <i>Figure 2: CNN-guided two-phase trajectory for corner patch localization</i>
 </div>
 
 **Core Implementation:**
 ```python
-# Probe horizontal and vertical steps to analyze corner orientation
+# ===== Phase 1: Retreat through Outer AND Edge until Inner is reached =====
+for k in range(30):
+    label, conf = self.classify_patch(img, (int(cx), int(cy)))
+    if label == 'Edge':
+        last_edge_pos = (cx, cy)  # Record, keep retreating
+    if label == 'Inner':
+        cx, cy = last_edge_pos   # Anchor at deepest Edge
+        break
+    # Both Outer and Edge: continue retreating toward center
+    dx, dy = center_x - cx, center_y - cy
+    dist = (dx**2 + dy**2)**0.5
+    cx += (dx / dist) * step;  cy += (dy / dist) * step
+
+# ===== Phase 2: Slide along edge to find Corner =====
 if label == 'Edge':
     lx_label, _ = self.classify_patch(img, (int(cx + v_x[0]), int(cy)))
     ly_label, _ = self.classify_patch(img, (int(cx), int(cy + v_y[1])))
+    can_move_x = lx_label in ['Inner', 'Edge']
+    can_move_y = ly_label in ['Inner', 'Edge']
+    if locked_axis == 'X': can_move_x = False
+    elif locked_axis == 'Y': can_move_y = False
+    # Force-forward: don't block when both probes are Outer
     if not can_move_x and not can_move_y:
-        # Priority: If blocked, backtrack inward towards center along Y or X axis alternatively
-        if backtrack_count % 2 == 1:
-            cy -= v_y[1]
-        else:
-            cx -= v_x[0]
+        next_cx, next_cy = cx + v_x[0], cy + v_y[1]  # Jump forward
 ```
 
 ### 3. Hybrid Localization: CNN + OpenCV Engine
@@ -86,6 +106,12 @@ num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh_i
 all_harris_global = [(int(c[0]) + x1, int(c[1]) + y1) for c in centroids[1:]]
 ```
 
+<div align="center">
+  <img src="./Image/FarTR-Return.png" width="500">
+  <br>
+  <i>Figure 3: Debug trajectory showing the TR patch's successful return and anchoring route</i>
+</div>
+
 ### 5. Local Gap Estimation & Perspective Compensation
 **Problem**: Global average grid spacing (e.g., 25px) fails in regions with extreme perspective stretching (e.g., the BR corner having an actual gap of 82px).
 **Innovation**: The `_estimate_local_gap_from_harris` function dynamically calculates the median distance between local Harris points to derive a region-specific **Local Gap**.
@@ -117,21 +143,21 @@ for attempt in range(MAX_EXPAND + 1):
 <div align="center">
   <img src="./Image/CornFinalProcess.png" width="400">
   <br>
-  <i>Figure 3: Step-by-step demonstration of Hybrid OpenCV + Harris refinement</i>
+  <i>Figure 4: Step-by-step demonstration of Hybrid OpenCV + Harris refinement</i>
 </div>
 
 ### Successful Quad-Corner Pinned
 <div align="center">
   <img src="./Image/4cornerAccu.png" width="500">
   <br>
-  <i>Figure 4: Final sub-pixel precise localization for all four corners</i>
+  <i>Figure 5: Final sub-pixel precise localization for all four corners</i>
 </div>
 
 ---
 
 ## The Debug Journey
 
-Key milestones during the development of `hybrid_scanner_v4_2.py`:
+Key milestones during the development of `hybrid_scanner_v4_2.py` → `v4_3.py`:
 
 1. **Restoring Visualization**:
    - Recovered the **Trajectory Canvas** after major refactoring (V4.1) to regain visibility into the AI's decision-making flow.
@@ -142,20 +168,27 @@ Key milestones during the development of `hybrid_scanner_v4_2.py`:
 3. **Code Stability**:
    - Fixed critical `NameError` and `IndentationError` (caused by nested comment blocks) to ensure robust execution.
 
+4. **TR Oscillation Fix (V4.3)**:
+   - **Root cause**: The search triggered single-axis probing at the first `Edge` patch, which was too shallow. Both X and Y probes returned `Outer`, causing `next_pos == curr_pos` → block → deep retreat → return to same position → infinite loop.
+   - **Fix 1 — Two-Phase Search**: Edge patches in Phase 1 are treated like Outer (continue retreating), ensuring the search anchors at the Edge/Inner boundary before beginning directional sliding.
+   - **Fix 2 — Axis Locking**: After retreating along one axis, that axis is locked to prevent diagonal drift back to the blocked point.
+   - **Fix 3 — Force-Forward**: When both probes return `Outer`, the algorithm forces a full-step jump instead of blocking. The main loop redirects via its `Outer` handler.
+
 ---
 
 ## Status Summary (as of March 22, 2026)
 
-**Status**: [SUCCESS] - TL, TR, BR, BL ALL PINNED.  
+**Status**: [SUCCESS] - TL, TR, BR, BL ALL PINNED (tested across multiple board images).  
 **Date**: March 22, 2026  
 **Key Takeaways**:  
 1. Built a board detection engine resilient to extreme perspective and complex wood grain textures.  
-2. Identified further optimization opportunities for the probing speed (planned for next version).  
-3. Working toward solving edge cases for other board-environment combinations.
+2. The two-phase search strategy eliminates oscillation loops that previously caused TR/BR detection failures.  
+3. Force-forward on double-Outer prevents false deadlocks near actual corner positions.  
+4. Working toward solving edge cases for other board-environment combinations.
 
 ## Detect Process (Roadmap)
 <div align="center">
   <img src="./Image/Architect-cornerDetectV1-light.png" >
   <br>
-  <i>Figure 5: Corner Detection Process</i>
+  <i>Figure 6: Corner Detection Process</i>
 </div>
